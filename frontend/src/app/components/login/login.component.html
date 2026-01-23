@@ -1,0 +1,179 @@
+<div class="login-page">
+  <!-- Animated Background -->
+  <div class="bg-shapes">
+    <div class="shape shape-1"></div>
+    <div class="shape shape-2"></div>
+    <div class="shape shape-3"></div>
+    <div class="shape shape-4"></div>
+  </div>
+
+  <!-- Floating Travel Elements -->
+  <div class="floating-elements">
+    <mat-icon class="float-icon icon-1">flight</mat-icon>
+    <mat-icon class="float-icon icon-2">public</mat-icon>
+    <mat-icon class="float-icon icon-3">luggage</mat-icon>
+    <mat-icon class="float-icon icon-4">beach_access</mat-icon>
+  </div>
+
+  <div class="login-wrapper">
+    <!-- Left Side - Branding -->
+    <div class="branding-section">
+      <!-- Animated Background Pattern -->
+      <div class="brand-pattern">
+        <div class="pattern-line"></div>
+        <div class="pattern-line"></div>
+        <div class="pattern-line"></div>
+      </div>
+
+      <div class="brand-content">
+        <!-- Logo with Glow Effect -->
+        <div class="logo-container">
+          <div class="logo-glow"></div>
+          <div class="logo-icon">
+            <img
+              src="assets/logo/logo1.png"
+              alt="App Logo"
+              class="brand-logo"
+            />
+          </div>
+        </div>
+
+        <!-- Animated Title -->
+        <div class="brand-title">
+          <h1 class="title-main">
+            <span class="letter" style="--delay: 0">V</span>
+            <span class="letter" style="--delay: 1">o</span>
+            <span class="letter" style="--delay: 2">y</span>
+            <span class="letter" style="--delay: 3">a</span>
+            <span class="letter" style="--delay: 4">g</span>
+            <span class="letter" style="--delay: 5">e</span>
+            <span class="letter" style="--delay: 6">.IQ</span>
+          </h1>
+          <p class="tagline">Your journey begins here</p>
+        </div>
+
+        <!-- Animated Feature List -->
+        <div class="features">
+          <div class="feature" style="--index: 0">
+            <div class="feature-icon-wrap">
+              <mat-icon>flight_takeoff</mat-icon>
+            </div>
+            <span>Plan Amazing Trips</span>
+          </div>
+          <div class="feature" style="--index: 1">
+            <div class="feature-icon-wrap">
+              <mat-icon>account_balance_wallet</mat-icon>
+            </div>
+            <span>Track Your Budget</span>
+          </div>
+          <div class="feature" style="--index: 2">
+            <div class="feature-icon-wrap">
+              <mat-icon>wb_sunny</mat-icon>
+            </div>
+            <span>Live Weather Updates</span>
+          </div>
+          <div class="feature" style="--index: 3">
+            <div class="feature-icon-wrap">
+              <mat-icon>place</mat-icon>
+            </div>
+            <span>Discover New Places</span>
+          </div>
+        </div>
+
+        <!-- Decorative Bottom Line -->
+        <div class="brand-footer">
+          <div class="footer-line"></div>
+          <span>Trusted by travelers worldwide</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Side - Login Form -->
+    <div class="form-section">
+      <div class="login-card">
+        <div class="card-header">
+          <h2>Welcome Back!</h2>
+          <p>Sign in to continue your adventure</p>
+        </div>
+
+        <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+          <div class="input-group">
+            <mat-icon class="input-icon">email</mat-icon>
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Email Address</mat-label>
+              <input
+                matInput
+                type="email"
+                formControlName="email"
+                placeholder="Enter your email"
+              />
+              <mat-error *ngIf="email?.hasError('required')"
+                >Email is required</mat-error
+              >
+              <mat-error *ngIf="email?.hasError('email')"
+                >Invalid email format</mat-error
+              >
+            </mat-form-field>
+          </div>
+
+          <div class="input-group">
+            <mat-icon class="input-icon">lock</mat-icon>
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Password</mat-label>
+              <input
+                matInput
+                type="password"
+                formControlName="password"
+                placeholder="Enter your password"
+              />
+              <mat-error *ngIf="password?.hasError('required')"
+                >Password is required</mat-error
+              >
+              <mat-error *ngIf="password?.hasError('minlength')"
+                >Password must be at least 6 characters</mat-error
+              >
+            </mat-form-field>
+          </div>
+
+          <div *ngIf="errorMessage" class="error-message">
+            <mat-icon>error_outline</mat-icon>
+            <span>{{ errorMessage }}</span>
+          </div>
+
+          <div *ngIf="successMessage" class="success-message">
+            <mat-icon>check_circle</mat-icon>
+            <span>{{ successMessage }}</span>
+          </div>
+
+          <button
+            mat-raised-button
+            type="submit"
+            [disabled]="loading || loginForm.invalid"
+            class="login-btn"
+          >
+            <span *ngIf="!loading" class="btn-content">
+              <mat-icon>login</mat-icon>
+              Sign In
+            </span>
+            <span *ngIf="loading" class="btn-content">
+              <mat-spinner diameter="20"></mat-spinner>
+              Signing in...
+            </span>
+          </button>
+
+          <div class="divider">
+            <span>or</span>
+          </div>
+
+          <div class="register-link">
+            <p>Don't have an account?</p>
+            <a routerLink="/register" class="register-btn">
+              <mat-icon>person_add</mat-icon>
+              Create Account
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>

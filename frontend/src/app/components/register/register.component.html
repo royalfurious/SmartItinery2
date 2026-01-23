@@ -1,0 +1,149 @@
+<div class="register-page">
+  <!-- Animated Background -->
+  <div class="bg-shapes">
+    <div class="shape shape-1"></div>
+    <div class="shape shape-2"></div>
+    <div class="shape shape-3"></div>
+    <div class="shape shape-4"></div>
+  </div>
+
+  <div class="register-wrapper">
+    <!-- Left Side - Branding -->
+    <div class="branding-section">
+      <div class="brand-content">
+        <div class="logo-icon">
+          <mat-icon>person_add</mat-icon>
+        </div>
+        <h1>Join Us!</h1>
+        <p class="tagline">Start your travel journey today</p>
+        <div class="features">
+          <div class="feature">
+            <mat-icon>check_circle</mat-icon>
+            <span>Free Account Creation</span>
+          </div>
+          <div class="feature">
+            <mat-icon>check_circle</mat-icon>
+            <span>Unlimited Trip Planning</span>
+          </div>
+          <div class="feature">
+            <mat-icon>check_circle</mat-icon>
+            <span>Smart Budget Tracking</span>
+          </div>
+          <div class="feature">
+            <mat-icon>check_circle</mat-icon>
+            <span>Weather Forecasts</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Side - Register Form -->
+    <div class="form-section">
+      <div class="register-card">
+        <div class="card-header">
+          <h2>Create Account</h2>
+          <p>Fill in your details to get started</p>
+        </div>
+        
+        <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
+          <div class="input-row">
+            <div class="input-group">
+              <mat-icon class="input-icon">person</mat-icon>
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Full Name</mat-label>
+                <input matInput formControlName="name" placeholder="Enter your name">
+                <mat-error *ngIf="name?.hasError('required')">Name is required</mat-error>
+                <mat-error *ngIf="name?.hasError('minlength')">Min 2 characters</mat-error>
+              </mat-form-field>
+            </div>
+          </div>
+
+          <div class="input-row">
+            <div class="input-group">
+              <mat-icon class="input-icon">email</mat-icon>
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Email Address</mat-label>
+                <input matInput type="email" formControlName="email" placeholder="Enter your email">
+                <mat-error *ngIf="email?.hasError('required')">Email is required</mat-error>
+                <mat-error *ngIf="email?.hasError('email')">Invalid email</mat-error>
+              </mat-form-field>
+            </div>
+          </div>
+
+          <div class="input-row two-col">
+            <div class="input-group">
+              <mat-icon class="input-icon">lock</mat-icon>
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Password</mat-label>
+                <input matInput type="password" formControlName="password" placeholder="Password">
+                <mat-error *ngIf="password?.hasError('required')">Required</mat-error>
+                <mat-error *ngIf="password?.hasError('minlength')">Min 6 chars</mat-error>
+              </mat-form-field>
+            </div>
+            <div class="input-group">
+              <mat-icon class="input-icon">lock_outline</mat-icon>
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Confirm Password</mat-label>
+                <input matInput type="password" formControlName="confirmPassword" placeholder="Confirm">
+                <mat-error *ngIf="confirmPassword?.hasError('required')">Required</mat-error>
+                <mat-error *ngIf="confirmPassword?.hasError('passwordMismatch')">Mismatch</mat-error>
+              </mat-form-field>
+            </div>
+          </div>
+
+          <div class="input-row two-col">
+            <div class="input-group">
+              <mat-icon class="input-icon">badge</mat-icon>
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Role</mat-label>
+                <mat-select formControlName="role">
+                  <mat-option value="Traveler">
+                    <mat-icon>flight</mat-icon> Traveler
+                  </mat-option>
+                  <mat-option value="Admin">
+                    <mat-icon>admin_panel_settings</mat-icon> Admin
+                  </mat-option>
+                </mat-select>
+              </mat-form-field>
+            </div>
+            <div class="input-group">
+              <mat-icon class="input-icon">phone</mat-icon>
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Contact (Optional)</mat-label>
+                <input matInput formControlName="contact_info" placeholder="Phone number">
+              </mat-form-field>
+            </div>
+          </div>
+
+          <div *ngIf="errorMessage" class="error-message">
+            <mat-icon>error_outline</mat-icon>
+            <span>{{ errorMessage }}</span>
+          </div>
+
+          <button mat-raised-button type="submit" [disabled]="loading || registerForm.invalid" class="register-btn">
+            <span *ngIf="!loading" class="btn-content">
+              <mat-icon>how_to_reg</mat-icon>
+              Create Account
+            </span>
+            <span *ngIf="loading" class="btn-content">
+              <mat-spinner diameter="20"></mat-spinner>
+              Creating...
+            </span>
+          </button>
+
+          <div class="divider">
+            <span>or</span>
+          </div>
+
+          <div class="login-link">
+            <p>Already have an account?</p>
+            <a routerLink="/login" class="login-btn">
+              <mat-icon>login</mat-icon>
+              Sign In
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>

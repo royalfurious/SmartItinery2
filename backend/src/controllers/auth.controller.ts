@@ -49,13 +49,28 @@ export class AuthController {
       // Hash password
       const hashedPassword = await bcrypt.hash(password, 10);
 
-      // Insert user
-      const insertResult = await pool.query(
-        'INSERT INTO users (name, email, password, role, contact_info) VALUES ($1, $2, $3, $4, $5) RETURNING id',
-        [name, email, hashedPassword, role || 'Traveler', contact_info]
-      );
-
-      const userId = insertResult.rows[0].id;
+      // Insert user. Some deployed DBs may have a different schema (missing optional columns),
+      // so try the full INSERT first and fall back to a minimal INSERT on failure.
+      let userId: number;
+      try {
+        const insertResult = await pool.query(
+          'INSERT INTO users (name, email, password, role, contact_info) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+          [name, email, hashedPassword, role || 'Traveler', contact_info]
+        );
+        userId = insertResult.rows[0].id;
+      } catch (insertErr) {
+        console.warn('User insert failed with full columns, retrying minimal insert:', insertErr);
+        try {
+          const insertResult2 = await pool.query(
+            'INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING id',
+            [name, email, hashedPassword]
+          );
+          userId = insertResult2.rows[0].id;
+        } catch (insertErr2) {
+          console.error('Minimal user insert also failed:', insertErr2);
+          throw insertErr2; // let outer catch handle the response
+        }
+      }
 
       // Generate token
       const token = jwt.sign(

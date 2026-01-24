@@ -16,7 +16,22 @@ export class AuthController {
         return;
       }
 
-      const { name, email, password, role, contact_info } = req.body;
+      // Support tolerant parsing: if express.json didn't populate body, try rawBody
+      let body: any = req.body;
+      if ((!body || Object.keys(body).length === 0) && (req as any).rawBody) {
+        try {
+          body = JSON.parse((req as any).rawBody);
+        } catch (e) {
+          // leave body as-is; validation below will catch missing fields
+        }
+      }
+
+      const { name, email, password, role, contact_info } = body || {};
+
+      if (!name || !email || !password) {
+        res.status(400).json({ error: 'name, email and password are required' });
+        return;
+      }
 
       // Check if user already exists
       const result = await pool.query(
@@ -61,7 +76,7 @@ export class AuthController {
         }
       });
     } catch (error) {
-      console.error('Register error:', error);
+      console.error('Register error:', error, 'rawBody=', (req as any).rawBody);
       res.status(500).json({ error: 'Registration failed' });
     }
   }
@@ -74,7 +89,22 @@ export class AuthController {
         return;
       }
 
-      const { email, password } = req.body;
+      // tolerant parsing similar to register
+      let body: any = req.body;
+      if ((!body || Object.keys(body).length === 0) && (req as any).rawBody) {
+        try {
+          body = JSON.parse((req as any).rawBody);
+        } catch (e) {
+          // continue; validation will handle missing fields
+        }
+      }
+
+      const { email, password } = body || {};
+
+      if (!email || !password) {
+        res.status(400).json({ error: 'email and password are required' });
+        return;
+      }
 
       // Find user
       const result = await pool.query(
@@ -123,7 +153,7 @@ export class AuthController {
         }
       });
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('Login error:', error, 'rawBody=', (req as any).rawBody);
       res.status(500).json({ error: 'Login failed' });
     }
   }

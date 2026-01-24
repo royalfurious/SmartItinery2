@@ -1,4 +1,6 @@
 export const environment = {
   production: false,
-  apiUrl: 'http://localhost:3000/api'
+  // Use the deployed Render backend for dev/testing when desired.
+  // Replace with your Render service URL if different.
+  apiUrl: 'https://smartitinery2-1.onrender.com/api'
 };

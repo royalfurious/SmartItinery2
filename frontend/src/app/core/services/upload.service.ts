@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpEvent, HttpEventType, HttpProgressEvent } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { getApiUrl, getApiBase } from './runtime-config';
 
 export interface UploadResponse {
   message: string;
@@ -24,7 +25,7 @@ export interface UploadProgress {
   providedIn: 'root'
 })
 export class UploadService {
-  private apiUrl = `${environment.apiUrl}/upload`;
+  private apiUrl = `${getApiUrl()}/upload`;
 
   constructor(private http: HttpClient) {}
 
@@ -92,7 +93,7 @@ export class UploadService {
     if (path.startsWith('http')) {
       return path;
     }
-    return `${environment.apiUrl.replace('/api', '')}/${path}`;
+    return `${getApiBase()}/${path}`;
   }
 
   /**

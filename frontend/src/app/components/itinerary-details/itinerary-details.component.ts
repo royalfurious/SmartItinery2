@@ -29,7 +29,7 @@ import {
 } from "../../services/translation.service";
 import { TimezoneService, TimezoneInfo } from "../../services/timezone.service";
 import { CollaborationService } from "../../services/collaboration.service";
-import { environment } from "../../../environments/environment";
+import { getApiBase } from '../../core/services/runtime-config';
 import { ChartConfiguration, ChartData } from "chart.js";
 import { Subscription, interval } from "rxjs";
 
@@ -869,8 +869,8 @@ export class ItineraryDetailsComponent implements OnInit, OnDestroy {
   getMediaUrl(path: string): string {
     if (!path) return "";
     if (path.startsWith("http")) return path;
-    // Construct URL based on environment
-    const baseUrl = environment.apiUrl.replace("/api", "");
+    // Construct URL based on runtime-config
+    const baseUrl = getApiBase();
     return `${baseUrl}/${path.trim()}`;
   }
 

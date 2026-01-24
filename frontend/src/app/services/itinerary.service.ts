@@ -3,12 +3,13 @@ import { HttpClient, HttpParams, HttpHeaders } from '@angular/common/http';
 import { Observable, BehaviorSubject, shareReplay, tap } from 'rxjs';
 import { Itinerary, ItineraryInput } from '../models/itinerary.model';
 import { environment } from '../../environments/environment';
+import { getApiUrl } from '../core/services/runtime-config';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ItineraryService {
-  private apiUrl = `${environment.apiUrl}/itineraries`;
+  private apiUrl = `${getApiUrl()}/itineraries`;
   
   // Cache for itineraries list
   private itinerariesCache$ = new BehaviorSubject<Itinerary[] | null>(null);

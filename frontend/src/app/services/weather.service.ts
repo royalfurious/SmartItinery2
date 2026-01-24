@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of, catchError, map, switchMap } from 'rxjs';
 import { environment } from '../../environments/environment';
+import { getApiUrl } from '../core/services/runtime-config';
 
 export interface WeatherData {
   date: Date;
@@ -36,8 +37,8 @@ interface GeoLocation {
 })
 export class WeatherService {
   // Use backend proxy to avoid CORS issues
-  private baseUrl = `${environment.apiUrl}/weather`;
-  private geocodeUrl = `${environment.apiUrl}/weather/geocode`;
+  private baseUrl = `${getApiUrl()}/weather`;
+  private geocodeUrl = `${getApiUrl()}/weather/geocode`;
   
   // Cache for geocoded locations
   private locationCache: Map<string, GeoLocation> = new Map();

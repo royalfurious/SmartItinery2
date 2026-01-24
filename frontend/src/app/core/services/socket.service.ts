@@ -2,6 +2,7 @@ import { Injectable, OnDestroy } from '@angular/core';
 import { io, Socket } from 'socket.io-client';
 import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { getApiBase } from './runtime-config';
 import { AuthService } from '../../services/auth.service';
 
 export interface EditingUser {
@@ -108,12 +109,10 @@ export class SocketService implements OnDestroy {
       return;
     }
 
-    // Resolve socket base URL from environment. If the built `apiUrl` is missing,
-    // still points to localhost, or is the relative '/api', fall back to the
-    // deployed Render backend URL so sockets work in production preview builds.
+    // Resolve socket base URL at runtime using helper (avoids baking localhost into bundle)
     let baseUrl = '';
     try {
-      baseUrl = (environment.apiUrl || '').replace('/api', '');
+      baseUrl = getApiBase() || '';
     } catch (e) {
       baseUrl = '';
     }

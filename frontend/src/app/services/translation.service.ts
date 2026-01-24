@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, of, forkJoin } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
+import { getApiUrl } from '../core/services/runtime-config';
 
 export interface TranslationResult {
   original: string;
@@ -23,7 +24,7 @@ export interface Language {
 })
 export class TranslationService {
   // Use backend proxy to avoid CORS issues
-  private apiUrl = `${environment.apiUrl}/translate`;
+  private apiUrl = `${getApiUrl()}/translate`;
   
   // Cache to avoid repeated API calls - key format: "text_targetLang"
   private translationCache: Map<string, string> = new Map();

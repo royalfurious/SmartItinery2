@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, BehaviorSubject, Subject } from 'rxjs';
 import { tap } from 'rxjs/operators';
-import { environment } from '../../../environments/environment';
+import { getApiUrl } from './runtime-config';
 import { Collaboration, CollaborationStats, TopCollaborator, MostSharedItinerary } from '../../models/user.model';
 
 export interface Collaborator {
@@ -68,7 +68,7 @@ export interface AllCollaborationsResponse {
   providedIn: 'root'
 })
 export class CollaboratorService {
-  private apiUrl = `${environment.apiUrl}/collaborators`;
+  private apiUrl = `${getApiUrl()}/collaborators`;
   
   // Track pending invites count for notification badge
   private pendingCountSubject = new BehaviorSubject<number>(0);

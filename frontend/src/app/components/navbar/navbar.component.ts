@@ -5,7 +5,7 @@ import { User } from '../../models/user.model';
 import { MessageService } from '../../core/services/message.service';
 import { SocketService } from '../../core/services/socket.service';
 import { Subscription } from 'rxjs';
-import { environment } from '../../../environments/environment';
+import { getApiBase } from '../../core/services/runtime-config';
 
 @Component({
   selector: 'app-navbar',
@@ -17,7 +17,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
   isLoggedIn = false;
   isAdmin = false;
   notificationCount = 0;
-  apiUrl = environment.apiUrl.replace('/api', '');
+  apiUrl = getApiBase();
 
   private subscriptions: Subscription[] = [];
 

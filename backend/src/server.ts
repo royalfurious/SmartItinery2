@@ -28,46 +28,52 @@ socketService.initialize(server);
 app.use(cors());
 // Tolerant body parser: try to coerce simple malformed JSON-like payloads
 // (e.g. {name:Aditya,email:...}) into valid JSON to avoid 400 parse errors
-app.use((req, res, next) => {
+import getRawBody from 'raw-body';
+
+app.use(async (req, res, next) => {
   const contentType = req.headers['content-type'] || '';
   if (!contentType.includes('application/json')) {
     return next();
   }
 
-  let raw = '';
-  req.setEncoding('utf8');
-  req.on('data', chunk => { raw += chunk; });
-  req.on('end', () => {
+  try {
+    // Read raw body without calling req.setEncoding or attaching listeners
+    const raw = await getRawBody(req, { encoding: 'utf8' });
     if (!raw) return next();
+
     try {
-      // If valid JSON, parse and attach
       const parsed = JSON.parse(raw);
       req.body = parsed;
+      (req as any).rawBody = raw;
+      // mark body as consumed so body-parser doesn't try to read again
+      (req as any)._body = true;
       return next();
     } catch (err) {
-      // Attempt simple coercion: add quotes for keys and values
+      // Attempt simple coercion for malformed JSON-like strings
       try {
         let s = raw.trim();
-        // Only attempt coercion for simple object-like strings
         if (s.startsWith('{') && s.endsWith('}')) {
-          // Quote keys: {name: -> {"name":
           s = s.replace(/([\{,\s])(\w[\w\-\.]*)\s*:/g, '$1"$2":');
-          // Quote values that are unquoted (stop at comma or })
           s = s.replace(/:\s*([^\",\}\[\]\s][^,\}]*)/g, ':"$1"');
-          // Remove possible trailing commas before closing brace
           s = s.replace(/,\s*}/g, '}');
           const coerced = JSON.parse(s);
           req.body = coerced;
+          (req as any).rawBody = raw;
+          (req as any)._body = true;
           return next();
         }
       } catch (e) {
         // fallthrough to next and let express.json handle errors
       }
-      // Not parseable/coercible — attach raw for downstream handlers and continue
+
       (req as any).rawBody = raw;
       return next();
     }
-  });
+  } catch (readErr: any) {
+    // raw-body will throw if stream encoding was set earlier; log and continue to let express.json handle
+    console.warn('raw-body read failed in tolerant parser:', readErr?.message || readErr);
+    return next();
+  }
 });
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

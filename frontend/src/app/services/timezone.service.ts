@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, of, BehaviorSubject, interval } from 'rxjs';
 import { map, catchError, switchMap } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
+import { getApiUrl } from '../core/services/runtime-config';
 
 export interface TimezoneInfo {
   timezone: string;
@@ -33,7 +34,7 @@ export class TimezoneService {
     }
 
     // Use backend proxy to get coordinates and timezone
-    return this.http.get<any>(`${environment.apiUrl}/weather/geocode?name=${encodeURIComponent(cityName)}`).pipe(
+    return this.http.get<any>(`${getApiUrl()}/weather/geocode?name=${encodeURIComponent(cityName)}`).pipe(
       map(response => {
         if (response.results && response.results.length > 0) {
           const result = response.results[0];

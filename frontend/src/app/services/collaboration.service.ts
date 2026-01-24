@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
+import { getApiUrl } from '../core/services/runtime-config';
 
 export interface Collaborator {
   id: number;
@@ -22,7 +23,7 @@ export interface CollaboratorResponse {
   providedIn: 'root'
 })
 export class CollaborationService {
-  private apiUrl = `${environment.apiUrl}/collaborators`;
+  private apiUrl = `${getApiUrl()}/collaborators`;
 
   constructor(private http: HttpClient) {}
 

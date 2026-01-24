@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, BehaviorSubject } from 'rxjs';
 import { tap } from 'rxjs/operators';
-import { environment } from '../../../environments/environment';
+import { getApiUrl } from './runtime-config';
 
 export interface Message {
   id: number;
@@ -73,7 +73,7 @@ export interface SupportTicketsResponse {
   providedIn: 'root'
 })
 export class MessageService {
-  private apiUrl = `${environment.apiUrl}/messages`;
+  private apiUrl = `${getApiUrl()}/messages`;
   
   private unreadCountSubject = new BehaviorSubject<number>(0);
   unreadCount$ = this.unreadCountSubject.asObservable();

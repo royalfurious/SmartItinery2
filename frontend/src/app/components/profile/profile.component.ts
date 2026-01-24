@@ -16,7 +16,7 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatMenuModule } from '@angular/material/menu';
 import { AuthService } from '../../services/auth.service';
 import { User } from '../../models/user.model';
-import { environment } from '../../../environments/environment';
+import { getApiBase } from '../../core/services/runtime-config';
 import { ImageCropDialogComponent } from './image-crop-dialog/image-crop-dialog.component';
 
 @Component({
@@ -56,7 +56,7 @@ export class ProfileComponent implements OnInit {
   hideNewPassword = true;
   hideConfirmPassword = true;
   selectedTabIndex = 0;
-  apiUrl = environment.apiUrl.replace('/api', '');
+  apiUrl = getApiBase();
 
   constructor(
     private fb: FormBuilder,

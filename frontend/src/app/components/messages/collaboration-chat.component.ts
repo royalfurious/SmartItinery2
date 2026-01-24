@@ -12,7 +12,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { Subscription } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
-import { environment } from '../../../environments/environment';
+import { getApiBase } from '../../core/services/runtime-config';
 
 import { ChatService, ChatMessage, ChatParticipant } from '../../core/services/chat.service';
 import { SocketService } from '../../core/services/socket.service';
@@ -486,7 +486,7 @@ export class CollaborationChatComponent implements OnInit, OnDestroy, AfterViewC
   private subscriptions: Subscription[] = [];
   private typingTimeout: any;
   private shouldScrollToBottom = true;
-  private readonly backendBaseUrl = environment.apiUrl.replace('/api', '');
+  private readonly backendBaseUrl = getApiBase();
 
   constructor(
     private chatService: ChatService,

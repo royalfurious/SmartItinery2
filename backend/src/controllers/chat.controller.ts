@@ -248,7 +248,7 @@ export class CollaborationChatController {
           SELECT itinerary_id FROM itinerary_collaborators WHERE user_id = $5 AND status = 'accepted'
         )
         GROUP BY i.id, i.destination
-        HAVING unread_count > 0
+        HAVING COUNT(cc.id) > 0
       `, [userId, userId, userId, userId]);
       res.json({ unreadChats: countsRes.rows });
     } catch (error) {

@@ -129,17 +129,21 @@ import { MessageService, Message } from '../../core/services/message.service';
 
       .message-header {
         display: flex;
-        align-items: flex-start;
+        align-items: center;
         gap: 16px;
         padding: 16px;
         flex-wrap: wrap;
 
-        & mat-icon {
-          font-size: 40px;
-          width: 40px;
-          height: 40px;
-          padding: 8px;
-          border-radius: 8px;
+        > mat-icon {
+          font-size: 32px;
+          width: 32px;
+          height: 32px;
+          padding: 10px;
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
 
           &.admin {
             background: #ffebee;
@@ -162,12 +166,14 @@ import { MessageService, Message } from '../../core/services/message.service';
           min-width: 200px;
 
           & h2 {
-            margin: 0 0 8px 0;
+            margin: 0 0 6px 0;
             font-size: 1.3rem;
+            line-height: 1.3;
           }
 
           .meta {
             display: flex;
+            align-items: center;
             gap: 16px;
             color: #666;
             font-size: 0.9rem;
@@ -180,23 +186,28 @@ import { MessageService, Message } from '../../core/services/message.service';
         flex-direction: column;
         align-items: flex-end;
         gap: 8px;
+        flex-shrink: 0;
       }
 
       .status-indicator {
         display: inline-flex;
         align-items: center;
-        gap: 4px;
+        gap: 6px;
         font-size: 0.75rem;
         font-weight: 600;
-        padding: 4px 12px;
-        border-radius: 12px;
+        padding: 6px 14px;
+        border-radius: 20px;
         text-transform: uppercase;
         letter-spacing: 0.5px;
+        white-space: nowrap;
 
         mat-icon {
           font-size: 16px;
           width: 16px;
           height: 16px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
 
         &.status-pending {
@@ -254,6 +265,9 @@ import { MessageService, Message } from '../../core/services/message.service';
             width: 20px;
             height: 20px;
             color: #667eea;
+            display: flex;
+            align-items: center;
+            justify-content: center;
           }
         }
 
@@ -282,14 +296,24 @@ import { MessageService, Message } from '../../core/services/message.service';
           .thread-header {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
             margin-bottom: 8px;
+            flex-wrap: wrap;
+
+            strong {
+              font-size: 0.95rem;
+              line-height: 1;
+            }
 
             .role-badge {
               font-size: 0.7rem;
-              padding: 2px 8px;
+              padding: 3px 10px;
               border-radius: 6px;
               font-weight: 600;
+              line-height: 1.2;
+              display: inline-flex;
+              align-items: center;
+              vertical-align: middle;
 
               &.admin {
                 background: #667eea;
@@ -306,6 +330,8 @@ import { MessageService, Message } from '../../core/services/message.service';
               color: #999;
               font-size: 0.8rem;
               margin-left: auto;
+              line-height: 1;
+              white-space: nowrap;
             }
           }
 
@@ -335,6 +361,9 @@ import { MessageService, Message } from '../../core/services/message.service';
             width: 20px;
             height: 20px;
             color: #667eea;
+            display: flex;
+            align-items: center;
+            justify-content: center;
           }
         }
 
@@ -373,10 +402,18 @@ import { MessageService, Message } from '../../core/services/message.service';
         font-weight: 500;
 
         mat-icon {
-          font-size: 28px;
-          width: 28px;
-          height: 28px;
+          font-size: 24px;
+          width: 24px;
+          height: 24px;
           color: #4caf50;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+
+        span {
+          line-height: 1.4;
         }
       }
     }

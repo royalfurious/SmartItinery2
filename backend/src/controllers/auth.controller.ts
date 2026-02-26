@@ -478,7 +478,7 @@ export class AuthController {
 
       // Recent registrations (last 7 days)
       const recentUsersResult = await pool.query(
-        "SELECT COUNT(*) as count FROM users WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)"
+        "SELECT COUNT(*) as count FROM users WHERE created_at >= NOW() - INTERVAL '7 days'"
       );
 
       res.json({

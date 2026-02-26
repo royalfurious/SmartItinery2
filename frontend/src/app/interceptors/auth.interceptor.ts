@@ -13,17 +13,34 @@ export class AuthInterceptor implements HttpInterceptor {
   // URLs that should not trigger logout on 401
   private authIgnoreUrls = ['/auth/login', '/auth/register'];
 
+  // External API domains that should NOT receive our auth token
+  private externalDomains = [
+    'api.geoapify.com',
+    'api.mapbox.com',
+    'maps.geoapify.com',
+    'api.openweathermap.org',
+    'tile.openstreetmap.org'
+  ];
+
   constructor(private authService: AuthService, private router: Router) {}
 
   intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
     const token = this.authService.getToken();
 
-    if (token) {
+    // Only add auth header to our own backend requests, not third-party APIs
+    const isExternal = this.externalDomains.some(domain => req.url.includes(domain));
+
+    if (token && !isExternal) {
       req = req.clone({
         setHeaders: {
           Authorization: `Bearer ${token}`
         }
       });
+    }
+
+    // Skip retry/timeout logic for external API calls
+    if (isExternal) {
+      return next.handle(req);
     }
 
     // Set timeout based on request type (longer for itinerary creation)

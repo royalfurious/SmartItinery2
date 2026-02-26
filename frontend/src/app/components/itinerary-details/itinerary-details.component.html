@@ -175,16 +175,24 @@
       <div class="tab-container">
         <button
           class="tab-btn"
-          [class.active]="!showPackingList && !showCurrencyConverter"
-          (click)="showPackingList = false; showCurrencyConverter = false"
+          [class.active]="!showPackingList && !showCurrencyConverter && !showHotels"
+          (click)="showPackingList = false; showCurrencyConverter = false; showHotels = false"
         >
           <mat-icon>dashboard</mat-icon>
           <span>Overview</span>
         </button>
         <button
           class="tab-btn"
+          [class.active]="showHotels"
+          (click)="showHotelsTab()"
+        >
+          <mat-icon>hotel</mat-icon>
+          <span>Hotels</span>
+        </button>
+        <button
+          class="tab-btn"
           [class.active]="showPackingList"
-          (click)="showPackingList = true; showCurrencyConverter = false"
+          (click)="showPackingList = true; showCurrencyConverter = false; showHotels = false"
         >
           <mat-icon>checklist</mat-icon>
           <span>Packing List</span>
@@ -192,7 +200,7 @@
         <button
           class="tab-btn"
           [class.active]="showCurrencyConverter"
-          (click)="showCurrencyConverter = true; showPackingList = false"
+          (click)="showCurrencyConverter = true; showPackingList = false; showHotels = false"
         >
           <mat-icon>currency_exchange</mat-icon>
           <span>Currency</span>
@@ -203,7 +211,7 @@
     <!-- ==================== OVERVIEW TAB ==================== -->
     <div
       class="tab-content overview-tab"
-      *ngIf="!showPackingList && !showCurrencyConverter"
+      *ngIf="!showPackingList && !showCurrencyConverter && !showHotels"
     >
       <!-- Stats Grid -->
       <section class="stats-grid">
@@ -578,6 +586,116 @@
       </div>
     </div>
 
+    <!-- ==================== HOTELS TAB ==================== -->
+    <div class="tab-content hotels-tab" *ngIf="showHotels">
+      <section class="hotels-section">
+        <div class="section-header">
+          <div class="header-left">
+            <h2><mat-icon>hotel</mat-icon> Nearby Stays & Places</h2>
+            <span class="count-badge" *ngIf="hotels.length > 0">{{ hotels.length }} found</span>
+          </div>
+          <div class="header-right">
+            <mat-form-field appearance="outline" class="category-select">
+              <mat-label>Category</mat-label>
+              <mat-select [(ngModel)]="hotelSearchCategory" (selectionChange)="onHotelCategoryChange()">
+                <mat-option value="hotels">
+                  <mat-icon>hotel</mat-icon> Hotels & Stays
+                </mat-option>
+                <mat-option value="restaurants">
+                  <mat-icon>restaurant</mat-icon> Restaurants
+                </mat-option>
+                <mat-option value="cafes">
+                  <mat-icon>local_cafe</mat-icon> Cafes
+                </mat-option>
+                <mat-option value="attractions">
+                  <mat-icon>attractions</mat-icon> Attractions
+                </mat-option>
+                <mat-option value="shopping">
+                  <mat-icon>shopping_bag</mat-icon> Shopping
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+        </div>
+
+        <!-- Loading -->
+        <div *ngIf="loadingHotels" class="hotels-loading">
+          <mat-spinner diameter="48"></mat-spinner>
+          <p>Searching for places near {{ itinerary.destination }}...</p>
+        </div>
+
+        <!-- Empty State -->
+        <div *ngIf="!loadingHotels && hotels.length === 0" class="hotels-empty">
+          <mat-icon>search_off</mat-icon>
+          <h3>No places found</h3>
+          <p>Try a different category or check the destination name.</p>
+        </div>
+
+        <!-- Hotel Grid -->
+        <div class="hotel-grid" *ngIf="!loadingHotels && hotels.length > 0">
+          <div class="hotel-card" *ngFor="let hotel of hotels; let i = index">
+            <!-- Map Preview -->
+            <div class="hotel-map" (click)="openInMaps(hotel.lat, hotel.lon, hotel.name)">
+              <img [src]="getHotelMapUrl(hotel.lat, hotel.lon)" 
+                   [alt]="hotel.name + ' location'"
+                   loading="lazy"
+                   onerror="this.style.display='none'">
+              <div class="map-overlay">
+                <mat-icon>open_in_new</mat-icon>
+                <span>View on Maps</span>
+              </div>
+            </div>
+
+            <!-- Hotel Info -->
+            <div class="hotel-info">
+              <div class="hotel-type-badge">
+                {{ getAccommodationType(hotel.categories) }}
+              </div>
+
+              <h3 class="hotel-name">{{ hotel.name }}</h3>
+
+              <p class="hotel-address" *ngIf="hotel.address">
+                <mat-icon>location_on</mat-icon>
+                {{ hotel.address }}
+              </p>
+
+              <div class="hotel-details">
+                <!-- Stars -->
+                <div class="hotel-stars" *ngIf="hotel.stars">
+                  <mat-icon *ngFor="let s of getStarsArray(hotel.stars)" class="star-icon">star</mat-icon>
+                  <span class="star-count">{{ hotel.stars }}-star</span>
+                </div>
+
+                <!-- Distance -->
+                <span class="hotel-distance" *ngIf="hotel.distance">
+                  <mat-icon>near_me</mat-icon>
+                  {{ formatDistance(hotel.distance) }}
+                </span>
+              </div>
+
+              <!-- Actions -->
+              <div class="hotel-actions">
+                <a *ngIf="hotel.website" 
+                   [href]="hotel.website" target="_blank" rel="noopener"
+                   mat-stroked-button color="primary" class="hotel-action-btn">
+                  <mat-icon>language</mat-icon> Website
+                </a>
+                <a *ngIf="hotel.phone" 
+                   [href]="'tel:' + hotel.phone"
+                   mat-stroked-button class="hotel-action-btn">
+                  <mat-icon>phone</mat-icon> Call
+                </a>
+                <button mat-stroked-button class="hotel-action-btn"
+                        (click)="openInMaps(hotel.lat, hotel.lon, hotel.name)">
+                  <mat-icon>directions</mat-icon> Directions
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
     <!-- ==================== PACKING LIST TAB ==================== -->
     <div class="tab-content packing-tab" *ngIf="showPackingList">
       <section class="packing-section">
@@ -624,6 +742,7 @@
 
     <!-- ==================== CURRENCY TAB ==================== -->
     <div class="tab-content currency-tab" *ngIf="showCurrencyConverter">
+
       <section class="currency-section">
         <div class="section-header">
           <div class="header-left">
@@ -665,6 +784,7 @@
                   <input
                     matInput
                     type="number"
+                    placeholder="Amount"
                     [(ngModel)]="convertAmount"
                     (ngModelChange)="calculateConversion()"
                   />

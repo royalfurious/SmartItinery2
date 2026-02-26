@@ -649,6 +649,8 @@ export class CollaborationChatComponent implements OnInit, OnDestroy, AfterViewC
   getProfilePictureUrl(path?: string | null): string {
     const trimmed = (path || '').trim();
     if (!trimmed) return '';
+    // If the picture is a base64 data URL, use it directly
+    if (trimmed.startsWith('data:')) return trimmed;
     if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
     const normalized = trimmed.replace(/^\//, '');
     return `${this.backendBaseUrl}/${normalized}`;

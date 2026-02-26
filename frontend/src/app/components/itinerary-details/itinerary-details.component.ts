@@ -28,8 +28,7 @@ import {
   TranslationResult,
 } from "../../services/translation.service";
 import { TimezoneService, TimezoneInfo } from "../../services/timezone.service";
-import { CollaborationService } from "../../services/collaboration.service";
-import { getApiBase } from '../../core/services/runtime-config';
+import { CollaborationService } from "../../services/collaboration.service";import { HotelService, Hotel } from '../../services/hotel.service';import { getApiBase } from '../../core/services/runtime-config';
 import { ChartConfiguration, ChartData } from "chart.js";
 import { Subscription, interval } from "rxjs";
 
@@ -91,6 +90,13 @@ export class ItineraryDetailsComponent implements OnInit, OnDestroy {
   destinationTime: TimezoneInfo | null = null;
   clockSubscription?: Subscription;
 
+  // Hotels
+  hotels: Hotel[] = [];
+  loadingHotels = false;
+  showHotels = false;
+  hotelSearchCategory = 'hotels';
+  hotelsLoaded = false;
+
   // Media Gallery / Lightbox
   lightboxOpen = false;
   lightboxIndex = 0;
@@ -125,6 +131,7 @@ export class ItineraryDetailsComponent implements OnInit, OnDestroy {
     private translationService: TranslationService,
     private timezoneService: TimezoneService,
     private collaborationService: CollaborationService,
+    private hotelService: HotelService,
     private cdr: ChangeDetectorRef
   ) {
     this.currencies = this.currencyService.currencies;
@@ -895,6 +902,86 @@ export class ItineraryDetailsComponent implements OnInit, OnDestroy {
     event.stopPropagation();
     const files = this.getMediaFiles();
     this.lightboxIndex = (this.lightboxIndex + 1) % files.length;
+  }
+
+  // ==================== HOTELS ====================
+
+  loadHotels(): void {
+    if (!this.itinerary?.destination) return;
+    if (this.hotelsLoaded && this.hotelSearchCategory === 'hotels') return;
+
+    this.loadingHotels = true;
+    this.hotels = [];
+
+    if (this.hotelSearchCategory === 'hotels') {
+      this.hotelService.searchHotels(this.itinerary.destination, 20).subscribe({
+        next: (hotels) => {
+          this.hotels = hotels;
+          this.loadingHotels = false;
+          this.hotelsLoaded = true;
+          this.cdr.detectChanges();
+        },
+        error: () => {
+          this.loadingHotels = false;
+          this.cdr.detectChanges();
+        }
+      });
+    } else {
+      const categoryMap: Record<string, string> = {
+        'restaurants': 'catering.restaurant',
+        'cafes': 'catering.cafe',
+        'attractions': 'tourism.attraction,tourism.sights',
+        'shopping': 'commercial.shopping_mall,commercial.supermarket'
+      };
+      const category = categoryMap[this.hotelSearchCategory] || 'accommodation.hotel';
+      this.hotelService.searchNearbyPlaces(this.itinerary.destination, category, 20).subscribe({
+        next: (places) => {
+          this.hotels = places;
+          this.loadingHotels = false;
+          this.cdr.detectChanges();
+        },
+        error: () => {
+          this.loadingHotels = false;
+          this.cdr.detectChanges();
+        }
+      });
+    }
+  }
+
+  onHotelCategoryChange(): void {
+    this.hotelsLoaded = false;
+    this.loadHotels();
+  }
+
+  showHotelsTab(): void {
+    this.showHotels = true;
+    this.showPackingList = false;
+    this.showCurrencyConverter = false;
+    if (!this.hotelsLoaded) {
+      this.loadHotels();
+    }
+  }
+
+  getAccommodationType(categories: string[]): string {
+    return this.hotelService.getAccommodationType(categories);
+  }
+
+  formatDistance(meters?: number): string {
+    return this.hotelService.formatDistance(meters);
+  }
+
+  getStarsArray(stars?: number): number[] {
+    if (!stars) return [];
+    return Array(Math.round(stars)).fill(0);
+  }
+
+  getHotelMapUrl(lat: number, lon: number): string {
+    return this.hotelService.getStaticMapUrl(lat, lon);
+  }
+
+  openInMaps(lat: number, lon: number, name: string): void {
+    const url = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}&query_place_id=${encodeURIComponent(name)}`;
+    window.open(url, '_blank');
   }
 
   @HostListener("document:keydown", ["$event"])

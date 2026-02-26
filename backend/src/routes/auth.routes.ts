@@ -1,7 +1,5 @@
 import { Router, Request, Response } from 'express';
 import multer from 'multer';
-import path from 'path';
-import fs from 'fs';
 import { AuthController } from '../controllers/auth.controller';
 import { registerValidation, loginValidation } from '../middleware/validation.middleware';
 import { authenticateToken, authorizeRoles, AuthRequest } from '../middleware/auth.middleware';
@@ -9,24 +7,10 @@ import { authenticateToken, authorizeRoles, AuthRequest } from '../middleware/au
 const router = Router();
 const authController = new AuthController();
 
-// Configure multer for profile picture upload
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadDir = path.join(__dirname, '../../uploads');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const ext = path.extname(file.originalname);
-    cb(null, `profile-${uniqueSuffix}${ext}`);
-  }
-});
-
+// Configure multer to use memory storage (buffer) so we can convert to base64
+// This avoids relying on the filesystem which gets wiped on redeploy
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   fileFilter: (req, file, cb) => {
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
     if (allowedTypes.includes(file.mimetype)) {
@@ -35,7 +19,7 @@ const upload = multer({
       cb(new Error('Invalid file type. Only images are allowed.'));
     }
   },
-  limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+  limits: { fileSize: 2 * 1024 * 1024 } // 2MB limit (stored as base64 in DB)
 });
 
 router.post('/register', registerValidation, (req: Request, res: Response) => authController.register(req, res));

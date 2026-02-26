@@ -254,17 +254,20 @@ export class AuthController {
         return;
       }
 
-      const profilePicturePath = `uploads/${req.file.filename}`;
+      // Convert the file buffer to a base64 data URL so it persists in the DB
+      // This avoids filesystem storage which gets wiped on redeploy
+      const base64 = req.file.buffer.toString('base64');
+      const dataUrl = `data:${req.file.mimetype};base64,${base64}`;
 
       // Update user's profile picture in database
       await pool.query(
         'UPDATE users SET profile_picture = $1 WHERE id = $2',
-        [profilePicturePath, req.user.id]
+        [dataUrl, req.user.id]
       );
 
       res.json({ 
         message: 'Profile picture uploaded successfully',
-        profile_picture: profilePicturePath
+        profile_picture: dataUrl
       });
     } catch (error) {
       console.error('Upload profile picture error:', error);

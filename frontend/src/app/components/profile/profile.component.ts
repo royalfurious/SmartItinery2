@@ -268,6 +268,11 @@ export class ProfileComponent implements OnInit {
 
   getProfilePictureUrl(): string | null {
     if (this.currentUser?.profile_picture) {
+      // If the picture is already a data URL (base64), use it directly
+      if (this.currentUser.profile_picture.startsWith('data:')) {
+        return this.currentUser.profile_picture;
+      }
+      // Legacy: old file-path-based pictures (fallback)
       return `${this.apiUrl}/${this.currentUser.profile_picture}`;
     }
     return null;

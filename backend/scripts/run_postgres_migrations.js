@@ -2,14 +2,19 @@ const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
 const { Pool } = require('pg');
 
-const pool = new Pool({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: String(process.env.DB_PASSWORD || ''),
-  database: process.env.DB_NAME,
-  port: process.env.DB_PORT ? parseInt(process.env.DB_PORT) : 5432,
-  ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
-});
+const pool = process.env.DATABASE_URL
+  ? new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
+    })
+  : new Pool({
+      host: process.env.DB_HOST,
+      user: process.env.DB_USER,
+      password: String(process.env.DB_PASSWORD || ''),
+      database: process.env.DB_NAME,
+      port: process.env.DB_PORT ? parseInt(process.env.DB_PORT) : 5432,
+      ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
+    });
 
 const statements = [
   `CREATE TABLE IF NOT EXISTS users (
@@ -20,6 +25,7 @@ const statements = [
     role VARCHAR(20) DEFAULT 'Traveler',
     status VARCHAR(20) DEFAULT 'active',
     contact_info VARCHAR(255),
+    profile_picture TEXT,
     created_at TIMESTAMP DEFAULT NOW()
   );`,
 

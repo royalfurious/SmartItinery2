@@ -80,16 +80,16 @@ import { CollaboratorService, PendingInvite } from '../../core/services/collabor
   `,
   styles: [`
     :host {
-      display: flex;
+      display: inline-flex;
       align-items: center;
-      height: 64px;
     }
     
     .invite-button {
       color: rgba(255, 255, 255, 0.9) !important;
       width: 40px !important;
       height: 40px !important;
-      display: flex !important;
+      line-height: 40px !important;
+      display: inline-flex !important;
       align-items: center !important;
       justify-content: center !important;
       transition: all 0.3s ease !important;

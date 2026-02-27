@@ -592,7 +592,7 @@
         <div class="section-header">
           <div class="header-left">
             <h2><mat-icon>hotel</mat-icon> Nearby Stays & Places</h2>
-            <span class="count-badge" *ngIf="hotels.length > 0">{{ hotels.length }} found</span>
+            <span class="count-badge" *ngIf="filteredHotels.length > 0">{{ filteredHotels.length }} found</span>
           </div>
           <div class="header-right">
             <mat-form-field appearance="outline" class="category-select">
@@ -618,6 +618,39 @@
           </div>
         </div>
 
+        <!-- Filter & Sort Bar -->
+        <div class="hotel-filters" *ngIf="!loadingHotels && hotels.length > 0">
+          <!-- Star Rating Filter -->
+          <div class="filter-group" *ngIf="hotelSearchCategory === 'hotels'">
+            <span class="filter-label">Stars:</span>
+            <div class="star-chips">
+              <button class="star-chip" [class.active]="hotelStarFilter === 0" (click)="setStarFilter(0)">
+                All
+              </button>
+              <button *ngFor="let s of [3, 4, 5]" class="star-chip"
+                      [class.active]="hotelStarFilter === s" (click)="setStarFilter(s)">
+                {{ s }}★+
+              </button>
+            </div>
+          </div>
+
+          <!-- Sort Options -->
+          <div class="filter-group">
+            <span class="filter-label">Sort:</span>
+            <div class="sort-chips">
+              <button class="sort-chip" [class.active]="hotelSortMode === 'recommended'" (click)="setHotelSort('recommended')">
+                <mat-icon>auto_awesome</mat-icon> Best Match
+              </button>
+              <button class="sort-chip" [class.active]="hotelSortMode === 'nearest'" (click)="setHotelSort('nearest')">
+                <mat-icon>near_me</mat-icon> Nearest
+              </button>
+              <button class="sort-chip" [class.active]="hotelSortMode === 'rated'" (click)="setHotelSort('rated')">
+                <mat-icon>star</mat-icon> Top Rated
+              </button>
+            </div>
+          </div>
+        </div>
+
         <!-- Loading -->
         <div *ngIf="loadingHotels" class="hotels-loading">
           <mat-spinner diameter="48"></mat-spinner>
@@ -625,6 +658,12 @@
         </div>
 
         <!-- Empty State -->
+        <div *ngIf="!loadingHotels && filteredHotels.length === 0 && hotels.length > 0" class="hotels-empty">
+          <mat-icon>filter_list_off</mat-icon>
+          <h3>No results for this filter</h3>
+          <p>Try lowering the star rating or changing the sort.</p>
+        </div>
+
         <div *ngIf="!loadingHotels && hotels.length === 0" class="hotels-empty">
           <mat-icon>search_off</mat-icon>
           <h3>No places found</h3>
@@ -632,14 +671,28 @@
         </div>
 
         <!-- Hotel Grid -->
-        <div class="hotel-grid" *ngIf="!loadingHotels && hotels.length > 0">
-          <div class="hotel-card" *ngFor="let hotel of hotels; let i = index">
-            <!-- Map Preview -->
-            <div class="hotel-map" (click)="openInMaps(hotel.lat, hotel.lon, hotel.name)">
-              <img [src]="getHotelMapUrl(hotel.lat, hotel.lon)" 
-                   [alt]="hotel.name + ' location'"
+        <div class="hotel-grid" *ngIf="!loadingHotels && filteredHotels.length > 0">
+          <div class="hotel-card" *ngFor="let hotel of filteredHotels; let i = index; trackBy: trackByHotelName">
+            <!-- Recommendation Badge -->
+            <div class="recommended-badge" *ngIf="i === 0 && hotelSortMode === 'recommended'">
+              <mat-icon>thumb_up</mat-icon> Top Pick
+            </div>
+
+            <!-- Hotel Photo -->
+            <div class="hotel-media" (click)="openInMaps(hotel.lat, hotel.lon, hotel.name)">
+              <img [src]="getHotelPhotoUrl(hotel)" 
+                   [alt]="hotel.name"
                    loading="lazy"
-                   onerror="this.style.display='none'">
+                   class="hotel-photo"
+                   (error)="onHotelImageError(hotel)">
+
+              <!-- Gradient placeholder behind (visible while loading or on error) -->
+              <div class="hotel-placeholder"
+                   [style.background]="getPlaceholderGradient(hotel)">
+                <mat-icon>{{ getPlaceholderIcon(hotel) }}</mat-icon>
+                <span>{{ getAccommodationType(hotel.categories) }}</span>
+              </div>
+
               <div class="map-overlay">
                 <mat-icon>open_in_new</mat-icon>
                 <span>View on Maps</span>
@@ -666,6 +719,17 @@
                   <span class="star-count">{{ hotel.stars }}-star</span>
                 </div>
 
+                <!-- Rating -->
+                <div class="hotel-rating" *ngIf="hotel.rating">
+                  <span class="rating-value">{{ hotel.rating | number: '1.1-1' }}</span>
+                  <span class="rating-label">/ 5</span>
+                </div>
+
+                <!-- Price Estimate -->
+                <div class="hotel-price" *ngIf="hotel.stars && hotelSearchCategory === 'hotels'">
+                  <span class="price-value">{{ getEstimatedPriceRange(hotel) }}</span>
+                </div>
+
                 <!-- Distance -->
                 <span class="hotel-distance" *ngIf="hotel.distance">
                   <mat-icon>near_me</mat-icon>
@@ -676,7 +740,7 @@
               <!-- Actions -->
               <div class="hotel-actions">
                 <a *ngIf="hotel.website" 
-                   [href]="hotel.website" target="_blank" rel="noopener"
+                   [href]="hotel.website" target="_blank" rel="noopener noreferrer"
                    mat-stroked-button color="primary" class="hotel-action-btn">
                   <mat-icon>language</mat-icon> Website
                 </a>
@@ -689,6 +753,26 @@
                         (click)="openInMaps(hotel.lat, hotel.lon, hotel.name)">
                   <mat-icon>directions</mat-icon> Directions
                 </button>
+                <a [href]="getGooglePhotosUrl(hotel)" target="_blank" rel="noopener noreferrer"
+                   mat-stroked-button class="hotel-action-btn photos-btn"
+                   (click)="$event.stopPropagation()">
+                  <mat-icon>photo_library</mat-icon> Photos
+                </a>
+              </div>
+
+              <!-- Booking Links -->
+              <div class="booking-links" *ngIf="hotelSearchCategory === 'hotels'">
+                <span class="booking-label">Book on:</span>
+                <div class="booking-buttons">
+                  <a *ngFor="let link of getCachedBookingLinks(hotel)"
+                     [href]="link.url" target="_blank" rel="noopener noreferrer"
+                     class="booking-btn"
+                     [style.background]="link.color"
+                     (click)="$event.stopPropagation()">
+                    <mat-icon>{{ link.icon }}</mat-icon>
+                    <span class="booking-name">{{ link.name }}</span>
+                  </a>
+                </div>
               </div>
             </div>
           </div>

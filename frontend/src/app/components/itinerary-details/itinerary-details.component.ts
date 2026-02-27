@@ -96,6 +96,9 @@ export class ItineraryDetailsComponent implements OnInit, OnDestroy {
   showHotels = false;
   hotelSearchCategory = 'hotels';
   hotelsLoaded = false;
+  hotelStarFilter: number = 0;   // 0 = all, 1-5 = min stars
+  hotelSortMode: 'recommended' | 'nearest' | 'rated' = 'recommended';
+  private _bookingLinksCache = new Map<string, { name: string; icon: string; url: string; color: string }[]>();
 
   // Media Gallery / Lightbox
   lightboxOpen = false;
@@ -912,6 +915,7 @@ export class ItineraryDetailsComponent implements OnInit, OnDestroy {
 
     this.loadingHotels = true;
     this.hotels = [];
+    this._bookingLinksCache.clear();
 
     if (this.hotelSearchCategory === 'hotels') {
       this.hotelService.searchHotels(this.itinerary.destination, 20).subscribe({
@@ -919,6 +923,7 @@ export class ItineraryDetailsComponent implements OnInit, OnDestroy {
           this.hotels = hotels;
           this.loadingHotels = false;
           this.hotelsLoaded = true;
+          this.hotelService.loadHotelPhotos(this.hotels);
           this.cdr.detectChanges();
         },
         error: () => {
@@ -950,6 +955,9 @@ export class ItineraryDetailsComponent implements OnInit, OnDestroy {
 
   onHotelCategoryChange(): void {
     this.hotelsLoaded = false;
+    this.hotelStarFilter = 0;
+    this.hotelSortMode = 'recommended';
+    this._bookingLinksCache.clear();
     this.loadHotels();
   }
 
@@ -982,6 +990,130 @@ export class ItineraryDetailsComponent implements OnInit, OnDestroy {
   openInMaps(lat: number, lon: number, name: string): void {
     const url = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}&query_place_id=${encodeURIComponent(name)}`;
     window.open(url, '_blank');
+  }
+
+  // ---- Star Rating Filter ----
+  setStarFilter(stars: number): void {
+    this.hotelStarFilter = this.hotelStarFilter === stars ? 0 : stars;
+  }
+
+  // ---- Sort Mode ----
+  setHotelSort(mode: 'recommended' | 'nearest' | 'rated'): void {
+    this.hotelSortMode = mode;
+  }
+
+  // ---- Filtered + Sorted Hotels ----
+  get filteredHotels(): Hotel[] {
+    let list = [...this.hotels];
+
+    // Star filter
+    if (this.hotelStarFilter > 0) {
+      list = list.filter(h => (h.stars || 0) >= this.hotelStarFilter);
+    }
+
+    // Sort
+    switch (this.hotelSortMode) {
+      case 'nearest':
+        list.sort((a, b) => (a.distance || 99999) - (b.distance || 99999));
+        break;
+      case 'rated':
+        list.sort((a, b) => (b.stars || 0) - (a.stars || 0) || (b.rating || 0) - (a.rating || 0));
+        break;
+      case 'recommended':
+      default:
+        // Smart recommendation: weighted score (stars * 20 + rating * 10 - distance_km * 5)
+        list.sort((a, b) => {
+          const scoreA = (a.stars || 2) * 20 + (a.rating || 3) * 10 - ((a.distance || 5000) / 1000) * 5;
+          const scoreB = (b.stars || 2) * 20 + (b.rating || 3) * 10 - ((b.distance || 5000) / 1000) * 5;
+          return scoreB - scoreA;
+        });
+        break;
+    }
+    return list;
+  }
+
+  // ---- Booking Links ----
+  getBookingLinks(hotel: Hotel): { name: string; icon: string; url: string; color: string }[] {
+    const hotelName = encodeURIComponent(hotel.name);
+    const dest = encodeURIComponent(this.itinerary?.destination || '');
+    const fullQuery = encodeURIComponent(`${hotel.name} ${this.itinerary?.destination || ''}`.trim());
+    return [
+      {
+        name: 'Booking.com',
+        icon: 'travel_explore',
+        url: `https://www.booking.com/searchresults.html?ss=${fullQuery}`,
+        color: '#003580'
+      },
+      {
+        name: 'MakeMyTrip',
+        icon: 'flight_takeoff',
+        url: `https://www.makemytrip.com/hotels/hotel-listing/?searchText=${hotelName}&city=${dest}`,
+        color: '#eb2226'
+      },
+      {
+        name: 'OYO',
+        icon: 'night_shelter',
+        url: `https://www.oyorooms.com/search?location=${dest}&searchType=city`,
+        color: '#d1232a'
+      },
+      {
+        name: 'Google Hotels',
+        icon: 'hotel',
+        url: `https://www.google.com/travel/hotels?q=${fullQuery}`,
+        color: '#4285f4'
+      }
+    ];
+  }
+
+  getCachedBookingLinks(hotel: Hotel): { name: string; icon: string; url: string; color: string }[] {
+    const key = `${hotel.lat}_${hotel.lon}`;
+    if (!this._bookingLinksCache.has(key)) {
+      this._bookingLinksCache.set(key, this.getBookingLinks(hotel));
+    }
+    return this._bookingLinksCache.get(key)!;
+  }
+
+  trackByHotelName(index: number, hotel: Hotel): string {
+    return `${hotel.name}_${hotel.lat}_${hotel.lon}`;
+  }
+
+  onHotelImageError(hotel: Hotel): void {
+    hotel.imageUrl = undefined;
+    hotel.image = undefined;
+  }
+
+  getHotelPhotoUrl(hotel: Hotel): string {
+    return this.hotelService.getHotelPhotoUrl(hotel);
+  }
+
+  getPlaceholderGradient(hotel: Hotel): string {
+    return this.hotelService.getPlaceholderGradient(hotel.categories);
+  }
+
+  getPlaceholderIcon(hotel: Hotel): string {
+    const type = this.getAccommodationType(hotel.categories).toLowerCase();
+    switch (type) {
+      case 'hotel': return 'apartment';
+      case 'guest house': return 'cottage';
+      case 'hostel': return 'bunk_bed';
+      case 'motel': return 'night_shelter';
+      case 'restaurant': return 'restaurant';
+      case 'cafe': return 'local_cafe';
+      default: return 'location_city';
+    }
+  }
+
+  getEstimatedPriceRange(hotel: Hotel): string {
+    const stars = hotel.stars || 2;
+    if (stars >= 5) return '$$$$$';
+    if (stars >= 4) return '$$$$';
+    if (stars >= 3) return '$$$';
+    if (stars >= 2) return '$$';
+    return '$';
+  }
+
+  getGooglePhotosUrl(hotel: Hotel): string {
+    return this.hotelService.getGooglePhotosUrl(hotel);
   }
 
   @HostListener("document:keydown", ["$event"])

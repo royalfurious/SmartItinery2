@@ -7,9 +7,8 @@ package-lock.json
 .env.local
 .env.*.local
 
-# Angular environment files (contain API keys)
-frontend/src/environments/environment.ts
-frontend/src/environments/environment.prod.ts
+# Generated Mapbox config (contains API key, created by scripts/set-env.js)
+frontend/src/app/config/mapbox.config.ts
 
 # Build output
 dist/

@@ -242,9 +242,6 @@ h3 {
 
 // Destination Field with Autocomplete
 .destination-field {
-  margin-top: 0;
-  margin-bottom: 0;
-
   .search-icon {
     color: rgba(186, 85, 211, 0.9) !important;
     font-size: 22px;
@@ -281,16 +278,13 @@ h3 {
 
 // ─── Source Location Section ───────────────────────────────────────
 .source-section {
-  margin-bottom: 8px;
+  margin-bottom: 0;
 
   .source-row {
     width: 100%;
   }
 
   .source-display-field {
-    ::ng-deep .mat-mdc-form-field-subscript-wrapper {
-      margin-bottom: 0;
-    }
     .source-suffix {
       display: inline-flex;
       align-items: center;
@@ -372,65 +366,30 @@ h3 {
   }
 }
 
-// ─── Route Layout (2-column: track | fields) ──────────────────────
-.route-layout {
-  display: flex;
-  align-items: stretch;
-  gap: 14px;
-  margin-bottom: 4px;
-}
-
-.route-track {
+// ─── Field Divider (Source → Destination) ─────────────────────────
+.field-divider {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding-top: 22px;
-  padding-bottom: 28px;
-  width: 20px;
-  flex-shrink: 0;
+  gap: 2px;
+  padding: 4px 0 8px;
 
-  .track-dot {
-    width: 9px;
-    height: 9px;
+  .divider-dot {
+    width: 3px;
+    height: 3px;
     border-radius: 50%;
-    flex-shrink: 0;
-
-    &--origin {
-      border: 2px solid rgba(186, 85, 211, 0.8);
-      background: transparent;
-    }
-
-    &--dest {
-      background: rgba(186, 85, 211, 0.85);
-    }
+    background: rgba(186, 85, 211, 0.3);
   }
 
-  .track-line {
-    flex: 1;
-    width: 2px;
-    background: linear-gradient(
-      to bottom,
-      rgba(186, 85, 211, 0.55),
-      rgba(186, 85, 211, 0.25)
-    );
-  }
-
-  .track-arrow {
+  .divider-arrow {
     font-size: 16px;
     width: 16px;
     height: 16px;
-    line-height: 16px;
-    color: rgba(186, 85, 211, 0.85);
-    flex-shrink: 0;
-    margin: -2px 0;
+    color: rgba(186, 85, 211, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
-}
-
-.route-fields {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
 }
 
 // Map Section

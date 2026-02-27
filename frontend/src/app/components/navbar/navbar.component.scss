@@ -185,11 +185,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 4px;
   margin-left: 12px;
   padding-left: 16px;
   border-left: 1px solid rgba(255, 255, 255, 0.2);
-  height: 64px;
 }
 
 .icon-btn {
@@ -197,32 +196,52 @@
   transition: background 0.2s ease !important;
   width: 40px !important;
   height: 40px !important;
-  display: flex !important;
+  line-height: 40px !important;
+  display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
+  vertical-align: middle;
+
+  // Prevent mat-badge from adding padding that shifts the icon up
+  ::ng-deep {
+    .mat-badge-content {
+      top: 2px !important;
+      right: 2px !important;
+    }
+    // MDC badge host padding override
+    &.mat-badge-above {
+      padding-top: 0 !important;
+    }
+  }
 
   &:hover {
     background: rgba(255, 255, 255, 0.15) !important;
   }
 
   mat-icon {
-    font-size: 24px;
-    width: 24px;
-    height: 24px;
+    font-size: 22px;
+    width: 22px;
+    height: 22px;
     display: flex;
     align-items: center;
     justify-content: center;
+    line-height: 1;
+    margin: 0 !important;
+    padding: 0 !important;
+    position: relative;
+    top: 0 !important;
   }
 }
 
 .user-btn {
-  margin-left: 12px;
+  margin-left: 8px;
   padding: 0 !important;
   width: auto !important;
-  height: 48px !important;
+  height: 40px !important;
   transition: all 0.3s ease !important;
-  display: flex !important;
+  display: inline-flex !important;
   align-items: center !important;
+  vertical-align: middle;
 
   &:hover {
     background: rgba(255, 255, 255, 0.1) !important;
@@ -238,8 +257,8 @@
   }
 
   .user-avatar {
-    width: 42px;
-    height: 42px;
+    width: 36px;
+    height: 36px;
     background: linear-gradient(135deg, #ffffff, #e8e8e8);
     border-radius: 50%;
     display: flex;
@@ -465,9 +484,9 @@
   }
 
   .icon-actions {
-    gap: 2px !important;
-    margin-left: 4px;
-    padding-left: 8px;
+    gap: 4px !important;
+    margin-left: 8px;
+    padding-left: 12px;
     height: 56px;
 
     .icon-btn {
@@ -505,46 +524,46 @@
 
 @media (max-width: 480px) {
   .navbar {
-    padding: 0 4px;
+    padding: 0 12px;
+    height: 58px;
   }
 
   .brand {
     .logo-icon {
-      height: 36px;
+      height: 38px;
       border-radius: 8px;
     }
   }
 
+  // Hide text nav buttons on very small screens — too cramped
   .nav-btn {
-    padding: 6px !important;
-
-    mat-icon {
-      font-size: 20px;
-      width: 20px;
-      height: 20px;
-    }
+    display: none !important;
   }
 
   .icon-actions {
-    padding-left: 4px;
-    gap: 0 !important;
+    margin-left: 0;
+    padding-left: 0;
+    border-left: none;
+    gap: 6px !important;
 
     .icon-btn {
-      width: 34px !important;
-      height: 34px !important;
+      width: 40px !important;
+      height: 40px !important;
 
       mat-icon {
-        font-size: 20px;
-        width: 20px;
-        height: 20px;
+        font-size: 24px;
+        width: 24px;
+        height: 24px;
       }
     }
   }
 
   .user-btn {
+    margin-left: 6px;
+
     .avatar-wrapper .user-avatar {
-      width: 30px;
-      height: 30px;
+      width: 34px;
+      height: 34px;
     }
   }
 }

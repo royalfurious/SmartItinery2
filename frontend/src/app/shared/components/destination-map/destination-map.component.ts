@@ -14,7 +14,7 @@ import { MatIconModule } from "@angular/material/icon";
 import { MatButtonModule } from "@angular/material/button";
 import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
 import * as mapboxgl from "mapbox-gl";
-import { environment } from "../../../../environments/environment";
+import { MAPBOX_TOKEN } from "../../../../config/mapbox.config";
 
 @Component({
   selector: "app-destination-map",
@@ -533,7 +533,7 @@ export class DestinationMapComponent
   isExpanded: boolean = false;
   refreshingLocation: boolean = false;
 
-  private accessToken = environment.mapboxToken;
+  private accessToken = MAPBOX_TOKEN;
 
   ngOnInit(): void {
     (mapboxgl as any).accessToken = this.accessToken;

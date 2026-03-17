@@ -57,7 +57,7 @@ export interface GeoapifyResponse {
   providedIn: 'root'
 })
 export class HotelService {
-  private apiKey = environment.geoapifyKey;
+  private apiKey = (environment as { geoapifyKey?: string }).geoapifyKey ?? '';
   private apiUrl = 'https://api.geoapify.com/v2/places';
 
   constructor(

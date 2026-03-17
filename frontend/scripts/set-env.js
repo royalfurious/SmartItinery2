@@ -44,16 +44,19 @@ if (!fs.existsSync(envDir)) {
 }
 
 const apiUrl = process.env.API_URL || 'https://smartitinery2-1.onrender.com/api';
+const geoapifyKey = process.env.GEOAPIFY_KEY || '';
 
 const envDev = `export const environment = {
   production: false,
   apiUrl: '${apiUrl}',
+  geoapifyKey: '${geoapifyKey}',
 };
 `;
 
 const envProd = `export const environment = {
   production: true,
   apiUrl: '${apiUrl}',
+  geoapifyKey: '${geoapifyKey}',
 };
 `;
 

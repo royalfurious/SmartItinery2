@@ -76,9 +76,9 @@ export class ItineraryDetailsComponent implements OnInit, OnDestroy {
   showPackingList = false;
 
   // Currency Converter
-  baseCurrency = "USD";
+  baseCurrency = "INR";
   targetCurrency = "EUR";
-  currencyCode = "USD";
+  currencyCode = "INR";
   exchangeRate = 1;
   convertAmount = 100;
   convertedAmount = 0;
@@ -115,7 +115,7 @@ export class ItineraryDetailsComponent implements OnInit, OnDestroy {
   barChartOptions: ChartConfiguration<"bar">["options"] = {
     responsive: true,
     scales: {
-      y: { beginAtZero: true, title: { display: true, text: "Cost ($)" } },
+      y: { beginAtZero: true, title: { display: true, text: "Cost (INR)" } },
     },
     plugins: {
       legend: { display: false },
@@ -1105,11 +1105,11 @@ export class ItineraryDetailsComponent implements OnInit, OnDestroy {
 
   getEstimatedPriceRange(hotel: Hotel): string {
     const stars = hotel.stars || 2;
-    if (stars >= 5) return '$$$$$';
-    if (stars >= 4) return '$$$$';
-    if (stars >= 3) return '$$$';
-    if (stars >= 2) return '$$';
-    return '$';
+    if (stars >= 5) return '₹₹₹₹₹';
+    if (stars >= 4) return '₹₹₹₹';
+    if (stars >= 3) return '₹₹₹';
+    if (stars >= 2) return '₹₹';
+    return '₹';
   }
 
   getGooglePhotosUrl(hotel: Hotel): string {

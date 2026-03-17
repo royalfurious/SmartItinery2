@@ -56,7 +56,7 @@
           <span class="stat-label">Active Trips</span>
         </div>
         <div class="stat-item">
-          <span class="stat-number">{{ getTotalBudget() | currency:'USD':'symbol':'1.0-0' }}</span>
+          <span class="stat-number">{{ getTotalBudget() | currency:'INR':'symbol':'1.0-0':'en-IN' }}</span>
           <span class="stat-label">Total Budget</span>
         </div>
       </div>
@@ -121,7 +121,7 @@
             [(ngModel)]="minBudgetFilter"
             placeholder="Min"
           />
-          <span matPrefix>$&nbsp;</span>
+          <span matPrefix>₹&nbsp;</span>
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="filter-field budget-field">
@@ -132,7 +132,7 @@
             [(ngModel)]="maxBudgetFilter"
             placeholder="Max"
           />
-          <span matPrefix>$&nbsp;</span>
+          <span matPrefix>₹&nbsp;</span>
         </mat-form-field>
       </div>
 
@@ -200,14 +200,14 @@
             <mat-icon>account_balance_wallet</mat-icon>
             <div class="detail-text">
               <span class="detail-label">Budget</span>
-              <span class="detail-value">${{ itinerary.budget | number : "1.2-2" }}</span>
+              <span class="detail-value">{{ itinerary.budget | currency:'INR':'symbol':'1.2-2':'en-IN' }}</span>
             </div>
           </div>
           <div class="detail-item">
             <mat-icon>receipt_long</mat-icon>
             <div class="detail-text">
               <span class="detail-label">Est. Expenses</span>
-              <span class="detail-value">${{ calculateTotalExpenses(itinerary) | number : "1.2-2" }}</span>
+              <span class="detail-value">{{ calculateTotalExpenses(itinerary) | currency:'INR':'symbol':'1.2-2':'en-IN' }}</span>
             </div>
           </div>
           <div class="detail-item">

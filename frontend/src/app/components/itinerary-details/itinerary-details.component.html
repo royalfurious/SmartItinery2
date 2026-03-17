@@ -221,9 +221,7 @@
           </div>
           <div class="stat-info">
             <span class="stat-label">Total Budget</span>
-            <span class="stat-value"
-              >${{ itinerary.budget | number : "1.0-0" }}</span
-            >
+            <span class="stat-value">{{ itinerary.budget | currency : 'INR' : 'symbol' : '1.0-0' : 'en-IN' }}</span>
           </div>
         </div>
 
@@ -233,9 +231,7 @@
           </div>
           <div class="stat-info">
             <span class="stat-label">Estimated Cost</span>
-            <span class="stat-value"
-              >${{ calculateTotalExpenses() | number : "1.0-0" }}</span
-            >
+            <span class="stat-value">{{ calculateTotalExpenses() | currency : 'INR' : 'symbol' : '1.0-0' : 'en-IN' }}</span>
           </div>
         </div>
 
@@ -254,9 +250,7 @@
             <span class="stat-label">{{
               getRemainingBudget() >= 0 ? "Remaining" : "Over Budget"
             }}</span>
-            <span class="stat-value"
-              >${{ getRemainingBudget() | number : "1.0-0" }}</span
-            >
+            <span class="stat-value">{{ getRemainingBudget() | currency : 'INR' : 'symbol' : '1.0-0' : 'en-IN' }}</span>
           </div>
         </div>
 
@@ -352,23 +346,15 @@
             <div class="budget-summary">
               <div class="budget-stat">
                 <span class="stat-label">Budget</span>
-                <span class="stat-value"
-                  >${{ itinerary.budget | number : "1.0-0" }}</span
-                >
+                <span class="stat-value">{{ itinerary.budget | currency : 'INR' : 'symbol' : '1.0-0' : 'en-IN' }}</span>
               </div>
               <div class="budget-stat">
                 <span class="stat-label">Spent</span>
-                <span class="stat-value"
-                  >${{ getTotalCost() | number : "1.0-0" }}</span
-                >
+                <span class="stat-value">{{ getTotalCost() | currency : 'INR' : 'symbol' : '1.0-0' : 'en-IN' }}</span>
               </div>
               <div class="budget-stat">
                 <span class="stat-label">Left</span>
-                <span class="stat-value"
-                  >${{
-                    itinerary.budget - getTotalCost() | number : "1.0-0"
-                  }}</span
-                >
+                <span class="stat-value">{{ itinerary.budget - getTotalCost() | currency : 'INR' : 'symbol' : '1.0-0' : 'en-IN' }}</span>
               </div>
             </div>
           </div>
@@ -444,7 +430,7 @@
               </div>
               <div class="day-cost-badge">
                 <mat-icon>payments</mat-icon>
-                <span>${{ dayGroup.totalCost | number : "1.0-0" }}</span>
+                <span>{{ dayGroup.totalCost | currency : 'INR' : 'symbol' : '1.0-0' : 'en-IN' }}</span>
               </div>
             </div>
 
@@ -484,8 +470,8 @@
                         class="meta-tag cost"
                         *ngIf="activity.estimatedCost"
                       >
-                        <mat-icon>attach_money</mat-icon>
-                        ${{ activity.estimatedCost | number : "1.0-0" }}
+                        <mat-icon>currency_rupee</mat-icon>
+                        {{ activity.estimatedCost | currency : 'INR' : 'symbol' : '1.0-0' : 'en-IN' }}
                       </span>
                       <span
                         class="meta-tag free"

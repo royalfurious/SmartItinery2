@@ -10,6 +10,15 @@ export class PdfExportService {
   private agencyTagline = "Intent to Itinerary, Refined";
   private agencyContact = "contact@voyageiq.com | +91 98765 43210";
 
+  private formatInr(amount: number): string {
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 2,
+      minimumFractionDigits: 2,
+    }).format(amount);
+  }
+
   async exportItineraryToPdf(
     itinerary: any,
     groupedActivities: any[],
@@ -119,10 +128,10 @@ export class PdfExportService {
     const budget = Number(itinerary.budget) || 0;
 
     doc.text(`Duration: ${duration} days`, 25, 112);
-    doc.text(`Budget: $${budget.toFixed(2)}`, 25, 120);
-    doc.text(`Estimated Cost: $${totalCost.toFixed(2)}`, pageWidth / 2, 112);
+    doc.text(`Budget: ${this.formatInr(budget)}`, 25, 120);
+    doc.text(`Estimated Cost: ${this.formatInr(totalCost)}`, pageWidth / 2, 112);
     doc.text(
-      `Remaining: $${(budget - totalCost).toFixed(2)}`,
+      `Remaining: ${this.formatInr(budget - totalCost)}`,
       pageWidth / 2,
       120
     );
@@ -163,7 +172,7 @@ export class PdfExportService {
             activity.time || `${9 + index * 3}:00`,
             activity.name,
             activity.duration || "2 hours",
-            cost > 0 ? `$${cost.toFixed(2)}` : "Free",
+            cost > 0 ? this.formatInr(cost) : "Free",
           ];
         }
       );

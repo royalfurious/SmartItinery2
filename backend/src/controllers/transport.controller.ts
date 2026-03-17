@@ -78,6 +78,11 @@ const IATA_MAP: Record<string, string> = {
   'cairo': 'CAI', 'lisbon': 'LIS', 'prague': 'PRG', 'zurich': 'ZRH',
   'barcelona': 'BCN', 'madrid': 'MAD', 'berlin': 'BER',
   'seoul': 'ICN', 'beijing': 'PEK', 'shanghai': 'PVG',
+  'japan': 'NRT', 'united kingdom': 'LHR', 'uk': 'LHR',
+  'france': 'CDG', 'italy': 'FCO', 'spain': 'MAD', 'germany': 'FRA',
+  'turkey': 'IST', 'thailand': 'BKK', 'south korea': 'ICN',
+  'china': 'PEK', 'australia': 'SYD', 'canada': 'YYZ',
+  'united arab emirates': 'DXB', 'uae': 'DXB', 'singapore republic': 'SIN',
   'mumbai, maharashtra, india': 'BOM', 'new delhi, delhi, india': 'DEL',
   'bangalore, karnataka, india': 'BLR',
 };
@@ -113,14 +118,40 @@ const STATION_MAP: Record<string, string> = {
   'ranchi': 'RNC',
 };
 
+function normalizeLocationParts(value: string): string[] {
+  const normalized = value.toLowerCase().replace(/\s+/g, ' ').trim();
+  if (!normalized) return [];
+
+  const parts = normalized
+    .split(',')
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  const candidates = new Set<string>([normalized, ...parts]);
+
+  // Also try de-punctuated versions of each candidate (for inputs like "St. Louis").
+  for (const candidate of [...candidates]) {
+    const plain = candidate.replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+    if (plain) candidates.add(plain);
+  }
+
+  return [...candidates];
+}
+
+function resolveFromMap(value: string, lookup: Record<string, string>): string | null {
+  const candidates = normalizeLocationParts(value);
+  for (const key of candidates) {
+    if (lookup[key]) return lookup[key];
+  }
+  return null;
+}
+
 function resolveIATA(city: string): string | null {
-  const key = city.toLowerCase().replace(/,.*$/, '').trim();
-  return IATA_MAP[key] || IATA_MAP[city.toLowerCase().trim()] || null;
+  return resolveFromMap(city, IATA_MAP);
 }
 
 function resolveStation(city: string): string | null {
-  const key = city.toLowerCase().replace(/,.*$/, '').trim();
-  return STATION_MAP[key] || null;
+  return resolveFromMap(city, STATION_MAP);
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -159,6 +190,37 @@ function estimateBusOptions(source: string, dest: string, passengers: number) {
   });
 }
 
+function pushEstimatedFlights(arr: any[], source: string, dest: string, passengers: number) {
+  const dist = estimateDistance(source, dest);
+  const providers = ['IndiGo', 'Air India', 'Vistara'];
+  for (let i = 0; i < providers.length; i++) {
+    const speed = 700 + i * 50;
+    const dur = Math.max(60, Math.round((dist / speed) * 60) + 45);
+    const basePrice = +(dist * (4.5 + i * 0.8)).toFixed(2);
+    const dep = 6 + i * 4;
+    arr.push({
+      mode: 'flight',
+      provider: `${providers[i]} (est.)`,
+      pricePerPerson: basePrice,
+      totalPrice: +(basePrice * passengers).toFixed(2),
+      durationMinutes: dur,
+      departureTime: fmtTime(dep, 0),
+      arrivalTime: fmtTime(dep, dur),
+      co2Kg: +(dist * 0.115).toFixed(1),
+      source: 'estimate',
+    });
+  }
+}
+
+function isPastTravelDate(dateStr: string): boolean {
+  const input = new Date(`${dateStr}T00:00:00`);
+  if (Number.isNaN(input.getTime())) return false;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return input.getTime() < today.getTime();
+}
+
 function estimateDistance(a: string, b: string): number {
   let h = 0;
   const s = a.toLowerCase() + '|' + b.toLowerCase();
@@ -188,12 +250,18 @@ export const searchTransport = async (req: Request, res: Response) => {
 
     const results: any[] = [];
     const errors: string[] = [];
+    let hasFlightOptions = false;
 
     // ─── Flights (Amadeus) ───
     const originIATA = resolveIATA(source);
     const destIATA = resolveIATA(destination);
 
     if (originIATA && destIATA && AMADEUS_KEY) {
+      if (isPastTravelDate(date)) {
+        errors.push('Flights: Selected date is in the past — showing estimated options');
+        pushEstimatedFlights(results, source, destination, passengers);
+        hasFlightOptions = true;
+      } else {
       try {
         const token = await getAmadeusToken();
         const flightRes = await axios.get(`${AMADEUS_BASE}/v2/shopping/flight-offers`, {
@@ -238,15 +306,28 @@ export const searchTransport = async (req: Request, res: Response) => {
           });
         }
 
+        if (offers.length > 0) {
+          hasFlightOptions = true;
+        } else {
+          errors.push('Flights: No live offers found — showing estimated options');
+          pushEstimatedFlights(results, source, destination, passengers);
+          hasFlightOptions = true;
+        }
+
         console.log(`  ✈ Amadeus returned ${offers.length} flight offers`);
       } catch (flightErr: any) {
         const msg = flightErr.response?.data?.errors?.[0]?.detail || flightErr.message;
         console.error(`  ✈ Amadeus error: ${msg}`);
         errors.push(`Flights: ${msg}`);
+        pushEstimatedFlights(results, source, destination, passengers);
+        hasFlightOptions = true;
+      }
       }
     } else {
       if (!originIATA || !destIATA) {
         errors.push(`Flights: Could not resolve IATA codes for "${!originIATA ? source : destination}"`);
+        pushEstimatedFlights(results, source, destination, passengers);
+        hasFlightOptions = true;
       }
     }
 
@@ -325,6 +406,12 @@ export const searchTransport = async (req: Request, res: Response) => {
     if (isDomestic) {
       const buses = estimateBusOptions(source, destination, passengers);
       results.push(...buses);
+    }
+
+    // Safety net: ensure UI always has at least some flight options for comparison cards.
+    if (!hasFlightOptions) {
+      pushEstimatedFlights(results, source, destination, passengers);
+      errors.push('Flights: Live flight data unavailable — showing estimated options');
     }
 
     // Return

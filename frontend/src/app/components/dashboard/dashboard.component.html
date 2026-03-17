@@ -424,7 +424,7 @@
               <mat-icon>trending_up</mat-icon>
               <div class="budget-info">
                 <span class="budget-label">Average Budget</span>
-                <span class="budget-value">${{ analytics.averageBudget | number:'1.0-0' }}</span>
+                <span class="budget-value">{{ analytics.averageBudget | currency:'INR':'symbol':'1.0-0':'en-IN' }}</span>
               </div>
             </div>
             <div class="budget-stat-item" *ngIf="analytics.popularDestinations[0]">
@@ -490,7 +490,7 @@
               <ng-container matColumnDef="budget">
                 <th mat-header-cell *matHeaderCellDef> Budget </th>
                 <td mat-cell *matCellDef="let element" class="budget-cell">
-                  <span class="budget-badge">${{ element.budget | number:'1.0-0' }}</span>
+                  <span class="budget-badge">{{ element.budget | currency:'INR':'symbol':'1.0-0':'en-IN' }}</span>
                 </td>
               </ng-container>
 

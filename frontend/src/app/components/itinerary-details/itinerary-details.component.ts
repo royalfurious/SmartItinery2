@@ -37,7 +37,19 @@ interface DayGroup {
   date: Date;
   activities: Activity[];
   totalCost: number;
+  activityCost: number;
+  essentialsCost: number;
   weather?: WeatherData;
+}
+
+const LEGACY_USD_TO_INR_RATE = 83;
+
+interface CostProfile {
+  stayPerDay: number;
+  foodPerDay: number;
+  localTravelPerDay: number;
+  miscPerDay: number;
+  roundTripTravel: number;
 }
 
 @Component({
@@ -99,6 +111,7 @@ export class ItineraryDetailsComponent implements OnInit, OnDestroy {
   hotelStarFilter: number = 0;   // 0 = all, 1-5 = min stars
   hotelSortMode: 'recommended' | 'nearest' | 'rated' = 'recommended';
   private _bookingLinksCache = new Map<string, { name: string; icon: string; url: string; color: string }[]>();
+  private _failedHotelImageKeys = new Set<string>();
 
   // Media Gallery / Lightbox
   lightboxOpen = false;
@@ -582,6 +595,7 @@ export class ItineraryDetailsComponent implements OnInit, OnDestroy {
     const activitiesPerDay = Math.ceil(
       this.itinerary.activities.length / duration
     );
+    const essentialsPerDay = this.getDailyEssentialsCost();
 
     this.groupedActivities = [];
 
@@ -600,25 +614,79 @@ export class ItineraryDetailsComponent implements OnInit, OnDestroy {
       );
 
       if (dayActivities.length > 0) {
+        const activitiesCost = dayActivities.reduce(
+          (sum, a) => sum + this.parseCost(a.estimatedCost),
+          0
+        );
+
         this.groupedActivities.push({
           day: day,
           date: dayDate,
           activities: dayActivities,
-          totalCost: dayActivities.reduce(
-            (sum, a) => sum + (a.estimatedCost || 0),
-            0
-          ),
+          totalCost: +(activitiesCost + essentialsPerDay).toFixed(2),
+          activityCost: +activitiesCost.toFixed(2),
+          essentialsCost: +essentialsPerDay.toFixed(2),
         });
       }
     }
   }
 
+  private getCostProfile(destination: string): CostProfile {
+    const dest = destination.toLowerCase();
+    const indianMetro = ['mumbai', 'delhi', 'bangalore', 'bengaluru', 'chennai', 'hyderabad', 'kolkata', 'pune'];
+    const indiaRoute = dest.includes('india') || indianMetro.some((c) => dest.includes(c));
+
+    if (indiaRoute) {
+      const metro = indianMetro.some((c) => dest.includes(c));
+      return metro
+        ? { stayPerDay: 2500, foodPerDay: 900, localTravelPerDay: 600, miscPerDay: 500, roundTripTravel: 8000 }
+        : { stayPerDay: 1800, foodPerDay: 750, localTravelPerDay: 450, miscPerDay: 400, roundTripTravel: 6000 };
+    }
+
+    return { stayPerDay: 6000, foodPerDay: 2000, localTravelPerDay: 1200, miscPerDay: 1000, roundTripTravel: 45000 };
+  }
+
+  private getDailyEssentialsCost(): number {
+    if (!this.itinerary?.destination) return 0;
+    const profile = this.getCostProfile(this.itinerary.destination);
+    return profile.stayPerDay + profile.foodPerDay + profile.localTravelPerDay + profile.miscPerDay;
+  }
+
+  private getEssentialsTotalCost(): number {
+    const days = this.getDuration();
+    if (days <= 0) return 0;
+    return this.getDailyEssentialsCost() * days;
+  }
+
+  private getRoundTripTravelCost(): number {
+    if (!this.itinerary?.destination) return 0;
+    return this.getCostProfile(this.itinerary.destination).roundTripTravel;
+  }
+
+  private parseCost(value: unknown): number {
+    if (value === null || value === undefined) return 0;
+    const numeric = Number(value);
+    if (Number.isNaN(numeric) || numeric < 0) return 0;
+    return numeric;
+  }
+
   calculateTotalExpenses(): number {
     if (!this.itinerary?.activities) return 0;
-    return this.itinerary.activities.reduce(
-      (sum, activity) => sum + (activity.estimatedCost || 0),
-      0
-    );
+
+    const costs = this.itinerary.activities.map((activity) => this.parseCost(activity.estimatedCost));
+    const rawTotal = costs.reduce((sum, cost) => sum + cost, 0);
+    const hasInrScaleEntries = costs.some((cost) => cost >= 300);
+    const likelyLegacyUsdScale = rawTotal > 0 && !hasInrScaleEntries && rawTotal <= this.itinerary.activities.length * 120;
+
+    // Older generated itineraries used tiny USD-like values (10, 20, 50).
+    // Convert them to INR scale so cards/charts show realistic travel estimates.
+    const normalizedActivityCost = likelyLegacyUsdScale
+      ? rawTotal * LEGACY_USD_TO_INR_RATE
+      : rawTotal;
+
+    const essentials = this.getEssentialsTotalCost();
+    const roundTripTravel = this.getRoundTripTravelCost();
+    return +(normalizedActivityCost + essentials + roundTripTravel).toFixed(2);
   }
 
   getTotalCost(): number {
@@ -916,6 +984,7 @@ export class ItineraryDetailsComponent implements OnInit, OnDestroy {
     this.loadingHotels = true;
     this.hotels = [];
     this._bookingLinksCache.clear();
+    this._failedHotelImageKeys.clear();
 
     if (this.hotelSearchCategory === 'hotels') {
       this.hotelService.searchHotels(this.itinerary.destination, 20).subscribe({
@@ -1073,11 +1142,20 @@ export class ItineraryDetailsComponent implements OnInit, OnDestroy {
     return this._bookingLinksCache.get(key)!;
   }
 
+  private getHotelImageKey(hotel: Hotel): string {
+    return `${hotel.name}_${hotel.lat}_${hotel.lon}`;
+  }
+
+  hasHotelImageError(hotel: Hotel): boolean {
+    return this._failedHotelImageKeys.has(this.getHotelImageKey(hotel));
+  }
+
   trackByHotelName(index: number, hotel: Hotel): string {
     return `${hotel.name}_${hotel.lat}_${hotel.lon}`;
   }
 
   onHotelImageError(hotel: Hotel): void {
+    this._failedHotelImageKeys.add(this.getHotelImageKey(hotel));
     hotel.imageUrl = undefined;
     hotel.image = undefined;
   }

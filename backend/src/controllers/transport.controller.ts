@@ -78,6 +78,7 @@ const IATA_MAP: Record<string, string> = {
   'cairo': 'CAI', 'lisbon': 'LIS', 'prague': 'PRG', 'zurich': 'ZRH',
   'barcelona': 'BCN', 'madrid': 'MAD', 'berlin': 'BER',
   'seoul': 'ICN', 'beijing': 'PEK', 'shanghai': 'PVG',
+  'himachal pradesh': 'SLV', 'himanchal pradesh': 'SLV', 'shimla': 'SLV',
   'japan': 'NRT', 'united kingdom': 'LHR', 'uk': 'LHR',
   'france': 'CDG', 'italy': 'FCO', 'spain': 'MAD', 'germany': 'FRA',
   'turkey': 'IST', 'thailand': 'BKK', 'south korea': 'ICN',
@@ -116,7 +117,48 @@ const STATION_MAP: Record<string, string> = {
   'udaipur': 'UDZ',
   'agra': 'AGC',
   'ranchi': 'RNC',
+  'himachal pradesh': 'KLK', 'himanchal pradesh': 'KLK', 'shimla': 'SML',
 };
+
+const LOCATION_COORDS: Record<string, { lat: number; lon: number }> = {
+  // India
+  'avadi': { lat: 13.1143, lon: 80.1098 },
+  'chennai': { lat: 13.0827, lon: 80.2707 },
+  'bangalore': { lat: 12.9716, lon: 77.5946 },
+  'bengaluru': { lat: 12.9716, lon: 77.5946 },
+  'mumbai': { lat: 19.076, lon: 72.8777 },
+  'delhi': { lat: 28.6139, lon: 77.209 },
+  'new delhi': { lat: 28.6139, lon: 77.209 },
+  'hyderabad': { lat: 17.385, lon: 78.4867 },
+  'kolkata': { lat: 22.5726, lon: 88.3639 },
+  'pune': { lat: 18.5204, lon: 73.8567 },
+  'goa': { lat: 15.2993, lon: 74.124 },
+  'shimla': { lat: 31.1048, lon: 77.1734 },
+  'himachal pradesh': { lat: 31.1048, lon: 77.1734 },
+  'himanchal pradesh': { lat: 31.1048, lon: 77.1734 },
+  'chandigarh': { lat: 30.7333, lon: 76.7794 },
+  // International
+  'male': { lat: 4.1755, lon: 73.5093 },
+  'maldives': { lat: 4.1755, lon: 73.5093 },
+  'singapore': { lat: 1.3521, lon: 103.8198 },
+  'dubai': { lat: 25.2048, lon: 55.2708 },
+  'london': { lat: 51.5074, lon: -0.1278 },
+  'paris': { lat: 48.8566, lon: 2.3522 },
+  'tokyo': { lat: 35.6762, lon: 139.6503 },
+  'new york': { lat: 40.7128, lon: -74.0060 },
+};
+
+const INDIAN_IATA_CODES = new Set<string>([
+  'DEL', 'BOM', 'BLR', 'HYD', 'MAA', 'CCU', 'PNQ', 'AMD', 'JAI', 'GOI', 'LKO',
+  'COK', 'IXC', 'IDR', 'PAT', 'BHO', 'VNS', 'SXR', 'TRV', 'CJB', 'NAG', 'ATQ',
+  'IXR', 'BBI', 'VTZ', 'IXE', 'UDR'
+]);
+
+const INDIAN_LOCATION_KEYS = new Set<string>([
+  ...Object.keys(STATION_MAP),
+  'india', 'tamil nadu', 'maharashtra', 'karnataka', 'kerala', 'uttarakhand',
+  'telangana', 'west bengal', 'rajasthan', 'gujarat', 'punjab', 'goa'
+]);
 
 function normalizeLocationParts(value: string): string[] {
   const normalized = value.toLowerCase().replace(/\s+/g, ' ').trim();
@@ -146,6 +188,30 @@ function resolveFromMap(value: string, lookup: Record<string, string>): string |
   return null;
 }
 
+function resolveCoordsFromLocation(value: string): { lat: number; lon: number } | null {
+  const candidates = normalizeLocationParts(value);
+  for (const key of candidates) {
+    if (LOCATION_COORDS[key]) return LOCATION_COORDS[key];
+  }
+  return null;
+}
+
+function isLikelyIndiaLocation(value: string, iata?: string | null): boolean {
+  if (iata && INDIAN_IATA_CODES.has(iata)) return true;
+  const candidates = normalizeLocationParts(value);
+  return candidates.some((key) => INDIAN_LOCATION_KEYS.has(key));
+}
+
+function haversineKm(a: { lat: number; lon: number }, b: { lat: number; lon: number }): number {
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const dLat = toRad(b.lat - a.lat);
+  const dLon = toRad(b.lon - a.lon);
+  const lat1 = toRad(a.lat);
+  const lat2 = toRad(b.lat);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+  return 6371 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+}
+
 function resolveIATA(city: string): string | null {
   return resolveFromMap(city, IATA_MAP);
 }
@@ -173,9 +239,9 @@ function estimateBusOptions(source: string, dest: string, passengers: number) {
   const dist = estimateDistance(source, dest);
   const providers = ['RedBus Express', 'GreenLine Travels', 'Royal Cruiser'];
   return providers.map((prov, i) => {
-    const speed = 45 + i * 5;
+    const speed = 42 + i * 4;
     const dur = Math.round((dist / speed) * 60);
-    const basePrice = +(dist * (3.5 + i * 1.0)).toFixed(2);
+    const basePrice = +(220 + dist * (1.35 + i * 0.2)).toFixed(2);
     const dep = 6 + i * 3;
     return {
       mode: 'bus' as const,
@@ -190,13 +256,18 @@ function estimateBusOptions(source: string, dest: string, passengers: number) {
   });
 }
 
-function pushEstimatedFlights(arr: any[], source: string, dest: string, passengers: number) {
-  const dist = estimateDistance(source, dest);
+function pushEstimatedFlights(arr: any[], source: string, dest: string, passengers: number, isDomestic: boolean) {
+  const rawDist = estimateDistance(source, dest);
+  const dist = isDomestic ? Math.max(220, rawDist) : Math.max(1400, rawDist);
   const providers = ['IndiGo', 'Air India', 'Vistara'];
   for (let i = 0; i < providers.length; i++) {
-    const speed = 700 + i * 50;
-    const dur = Math.max(60, Math.round((dist / speed) * 60) + 45);
-    const basePrice = +(dist * (4.5 + i * 0.8)).toFixed(2);
+    const speed = isDomestic ? 650 + i * 40 : 780 + i * 60;
+    const airportBuffer = isDomestic ? 55 : 120;
+    const longRouteBuffer = isDomestic && dist > 1200 ? 70 : 0;
+    const dur = Math.max(75, Math.round((dist / speed) * 60) + airportBuffer + longRouteBuffer);
+    const basePrice = isDomestic
+      ? +(1800 + dist * (4.6 + i * 0.8)).toFixed(2)
+      : +(4500 + dist * (8.5 + i * 1.2)).toFixed(2);
     const dep = 6 + i * 4;
     arr.push({
       mode: 'flight',
@@ -222,10 +293,16 @@ function isPastTravelDate(dateStr: string): boolean {
 }
 
 function estimateDistance(a: string, b: string): number {
+  const ca = resolveCoordsFromLocation(a);
+  const cb = resolveCoordsFromLocation(b);
+  if (ca && cb) {
+    return Math.max(80, Math.round(haversineKm(ca, cb)));
+  }
+
   let h = 0;
   const s = a.toLowerCase() + '|' + b.toLowerCase();
   for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
-  return 100 + (Math.abs(h) % 2400);
+  return 180 + (Math.abs(h) % 1400);
 }
 
 function fmtTime(baseHour: number, addMin: number): string {
@@ -256,10 +333,17 @@ export const searchTransport = async (req: Request, res: Response) => {
     const originIATA = resolveIATA(source);
     const destIATA = resolveIATA(destination);
 
+    // Domestic detection should not depend only on station codes.
+    const fromStation = resolveStation(source);
+    const toStation = resolveStation(destination);
+    const originIsIndia = isLikelyIndiaLocation(source, originIATA);
+    const destIsIndia = isLikelyIndiaLocation(destination, destIATA);
+    const isDomestic = originIsIndia && destIsIndia;
+
     if (originIATA && destIATA && AMADEUS_KEY) {
       if (isPastTravelDate(date)) {
         errors.push('Flights: Selected date is in the past — showing estimated options');
-        pushEstimatedFlights(results, source, destination, passengers);
+        pushEstimatedFlights(results, source, destination, passengers, isDomestic);
         hasFlightOptions = true;
       } else {
       try {
@@ -310,7 +394,7 @@ export const searchTransport = async (req: Request, res: Response) => {
           hasFlightOptions = true;
         } else {
           errors.push('Flights: No live offers found — showing estimated options');
-          pushEstimatedFlights(results, source, destination, passengers);
+          pushEstimatedFlights(results, source, destination, passengers, isDomestic);
           hasFlightOptions = true;
         }
 
@@ -319,23 +403,17 @@ export const searchTransport = async (req: Request, res: Response) => {
         const msg = flightErr.response?.data?.errors?.[0]?.detail || flightErr.message;
         console.error(`  ✈ Amadeus error: ${msg}`);
         errors.push(`Flights: ${msg}`);
-        pushEstimatedFlights(results, source, destination, passengers);
+        pushEstimatedFlights(results, source, destination, passengers, isDomestic);
         hasFlightOptions = true;
       }
       }
     } else {
       if (!originIATA || !destIATA) {
         errors.push(`Flights: Could not resolve IATA codes for "${!originIATA ? source : destination}"`);
-        pushEstimatedFlights(results, source, destination, passengers);
+        pushEstimatedFlights(results, source, destination, passengers, isDomestic);
         hasFlightOptions = true;
       }
     }
-
-    // ─── Determine if route is domestic (India ↔ India) ───
-    // If both cities have Indian railway station codes, it's domestic
-    const fromStation = resolveStation(source);
-    const toStation = resolveStation(destination);
-    const isDomestic = !!(fromStation && toStation);
 
     console.log(`  🌍 Route type: ${isDomestic ? 'Domestic (India)' : 'International'} — trains/buses ${isDomestic ? 'enabled' : 'skipped'}`);
 
@@ -410,7 +488,7 @@ export const searchTransport = async (req: Request, res: Response) => {
 
     // Safety net: ensure UI always has at least some flight options for comparison cards.
     if (!hasFlightOptions) {
-      pushEstimatedFlights(results, source, destination, passengers);
+      pushEstimatedFlights(results, source, destination, passengers, isDomestic);
       errors.push('Flights: Live flight data unavailable — showing estimated options');
     }
 
@@ -434,9 +512,9 @@ function pushEstimatedTrains(arr: any[], source: string, dest: string, passenger
   const dist = estimateDistance(source, dest);
   const providers = ['Rajdhani Express', 'Shatabdi Express', 'Vande Bharat'];
   for (let i = 0; i < providers.length; i++) {
-    const speed = 70 + i * 15;
+    const speed = 58 + i * 10;
     const dur = Math.round((dist / speed) * 60);
-    const basePrice = +(dist * (5.0 + i * 1.3)).toFixed(2);
+    const basePrice = +(250 + dist * (0.95 + i * 0.25)).toFixed(2);
     const dep = 5 + i * 4;
     arr.push({
       mode: 'train',

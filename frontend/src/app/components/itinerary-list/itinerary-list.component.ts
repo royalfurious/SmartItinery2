@@ -15,6 +15,8 @@ import { Subscription } from "rxjs";
   styleUrls: ["./itinerary-list.component.scss"],
 })
 export class ItineraryListComponent implements OnInit {
+  private readonly LEGACY_USD_TO_INR_RATE = 83;
+
   itineraries: Itinerary[] = [];
   loading = true;
   errorMessage = "";
@@ -186,10 +188,49 @@ export class ItineraryListComponent implements OnInit {
 
   calculateTotalExpenses(itinerary: Itinerary): number {
     if (!itinerary.activities) return 0;
-    return itinerary.activities.reduce(
-      (sum, activity) => sum + (activity.estimatedCost || 0),
-      0
-    );
+
+    const costs = itinerary.activities.map((activity) => this.parseCost(activity.estimatedCost));
+    const rawTotal = costs.reduce((sum, cost) => sum + cost, 0);
+    const hasInrScaleEntries = costs.some((cost) => cost >= 300);
+    const likelyLegacyUsdScale = rawTotal > 0 && !hasInrScaleEntries && rawTotal <= itinerary.activities.length * 120;
+    const normalizedActivityCost = likelyLegacyUsdScale
+      ? rawTotal * this.LEGACY_USD_TO_INR_RATE
+      : rawTotal;
+
+    const duration = this.getDuration(itinerary);
+    const dailyEssentials = this.getDailyEssentialsCost(itinerary.destination);
+    const roundTrip = this.getRoundTripTravelCost(itinerary.destination);
+
+    return +(normalizedActivityCost + duration * dailyEssentials + roundTrip).toFixed(2);
+  }
+
+  private parseCost(value: unknown): number {
+    if (value === null || value === undefined) return 0;
+    const numeric = Number(value);
+    if (Number.isNaN(numeric) || numeric < 0) return 0;
+    return numeric;
+  }
+
+  private getDailyEssentialsCost(destination: string): number {
+    const dest = (destination || '').toLowerCase();
+    const indianMetro = ['mumbai', 'delhi', 'bangalore', 'bengaluru', 'chennai', 'hyderabad', 'kolkata', 'pune'];
+    const indiaRoute = dest.includes('india') || indianMetro.some((c) => dest.includes(c));
+    if (indiaRoute) {
+      const metro = indianMetro.some((c) => dest.includes(c));
+      return metro ? 4500 : 3400;
+    }
+    return 10200;
+  }
+
+  private getRoundTripTravelCost(destination: string): number {
+    const dest = (destination || '').toLowerCase();
+    const indianMetro = ['mumbai', 'delhi', 'bangalore', 'bengaluru', 'chennai', 'hyderabad', 'kolkata', 'pune'];
+    const indiaRoute = dest.includes('india') || indianMetro.some((c) => dest.includes(c));
+    if (indiaRoute) {
+      const metro = indianMetro.some((c) => dest.includes(c));
+      return metro ? 8000 : 6000;
+    }
+    return 45000;
   }
 
   getDuration(itinerary: Itinerary): number {

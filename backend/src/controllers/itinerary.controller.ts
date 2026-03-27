@@ -23,6 +23,8 @@ function parseMediaPaths(mediaPaths: any): string[] {
 }
 
 export class ItineraryController {
+  private readonly USD_TO_INR_RATE = 83;
+
   // Country to capital/major city mapping
   private countryToCity: Record<string, string> = {
     'russia': 'moscow',
@@ -269,6 +271,12 @@ export class ItineraryController {
     if (catStr.includes('church') || catStr.includes('memorial')) return 0;
     if (catStr.includes('heritage')) return 10;
     return 10;
+  }
+
+  private toInrCost(baseCost: number): number {
+    const normalized = Number(baseCost) || 0;
+    if (normalized <= 0) return 0;
+    return Math.round(normalized * this.USD_TO_INR_RATE);
   }
 
   private estimateDuration(kinds: string): number {
@@ -615,7 +623,7 @@ export class ItineraryController {
           name: place.name,
           time: timeSlots[j],
           duration: `${place.duration} hours`,
-          estimatedCost: place.cost,
+          estimatedCost: this.toInrCost(place.cost),
           location: destination
         });
         
@@ -642,7 +650,7 @@ export class ItineraryController {
             name: generic.name,
             time: timeSlots[activities.length % 3],
             duration: generic.duration,
-            estimatedCost: generic.cost,
+            estimatedCost: this.toInrCost(generic.cost),
             location: destination
           });
         }

@@ -67,10 +67,16 @@ export class ItineraryCreationComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const defaultEndDate = new Date(today);
+    defaultEndDate.setDate(defaultEndDate.getDate() + 7);
+
     this.itineraryForm = this.fb.group({
       destination: this.destinationControl,
-      start_date: ["", [Validators.required]],
-      end_date: ["", [Validators.required]],
+      start_date: [today, [Validators.required]],
+      end_date: [defaultEndDate, [Validators.required]],
       passengers: [1, [Validators.required, Validators.min(1)]],
       budget: [0, [Validators.required, Validators.min(0.01)]],
       preferences: [""],

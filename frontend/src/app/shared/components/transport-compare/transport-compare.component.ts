@@ -147,7 +147,7 @@ import {
 
           <div class="detail-grid">
             <div class="detail-item">
-              <mat-icon>attach_money</mat-icon>
+              <mat-icon>currency_rupee</mat-icon>
               <div>
                 <span class="detail-label">Total</span>
                 <span class="detail-value price">{{ opt.totalPrice | currency:'INR' }}</span>

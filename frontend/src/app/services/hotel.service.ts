@@ -59,6 +59,13 @@ export interface GeoapifyResponse {
 export class HotelService {
   private apiKey = (environment as { geoapifyKey?: string }).geoapifyKey ?? '';
   private apiUrl = 'https://api.geoapify.com/v2/places';
+  private geocodeCache = new Map<string, [number, number]>();
+  private placesCache = new Map<string, Hotel[]>();
+
+  private hasGeoapifyKey(): boolean {
+    const key = (this.apiKey || '').trim();
+    return !!key && key !== 'YOUR_GEOAPIFY_KEY_HERE';
+  }
 
   constructor(
     private http: HttpClient,
@@ -70,6 +77,19 @@ export class HotelService {
    * Uses Geoapify's own geocoding to avoid dependency on Mapbox token.
    */
   searchHotels(destination: string, limit: number = 20): Observable<Hotel[]> {
+    const cacheKey = `hotels|${destination.toLowerCase().trim()}|${limit}`;
+    const cached = this.placesCache.get(cacheKey);
+    if (cached) return of(cached);
+
+    if (!this.hasGeoapifyKey()) {
+      return this.searchOpenDataPlaces(destination, 'hotels', limit).pipe(
+        map(results => {
+          this.placesCache.set(cacheKey, results);
+          return results;
+        })
+      );
+    }
+
     return this.geocodeWithGeoapify(destination).pipe(
       switchMap(coords => {
         if (!coords) {
@@ -86,7 +106,12 @@ export class HotelService {
           );
         }
         const [lat, lon] = coords;
-        return this.searchHotelsByCoordinates(lat, lon, limit);
+        return this.searchHotelsByCoordinates(lat, lon, limit).pipe(
+          map(results => {
+            this.placesCache.set(cacheKey, results);
+            return results;
+          })
+        );
       }),
       catchError(error => {
         console.error('Hotel search error:', error);
@@ -100,6 +125,10 @@ export class HotelService {
    * Returns [lat, lon] or null.
    */
   private geocodeWithGeoapify(query: string): Observable<[number, number] | null> {
+    const cacheKey = query.toLowerCase().trim();
+    const cached = this.geocodeCache.get(cacheKey);
+    if (cached) return of(cached);
+
     const url = 'https://api.geoapify.com/v1/geocode/search';
     return this.http.get<any>(url, {
       params: {
@@ -111,11 +140,15 @@ export class HotelService {
       map(response => {
         if (response?.results?.length > 0) {
           const r = response.results[0];
-          return [r.lat, r.lon] as [number, number];
+          const coords = [r.lat, r.lon] as [number, number];
+          this.geocodeCache.set(cacheKey, coords);
+          return coords;
         }
         if (response?.features?.length > 0) {
           const props = response.features[0].properties;
-          return [props.lat, props.lon] as [number, number];
+          const coords = [props.lat, props.lon] as [number, number];
+          this.geocodeCache.set(cacheKey, coords);
+          return coords;
         }
         return null;
       }),
@@ -149,6 +182,20 @@ export class HotelService {
    * Search places by category (restaurants, supermarkets, attractions, etc.)
    */
   searchNearbyPlaces(destination: string, category: string, limit: number = 20): Observable<Hotel[]> {
+    const categoryKey = this.mapCategoryForOpenData(category);
+    const cacheKey = `nearby|${destination.toLowerCase().trim()}|${categoryKey}|${limit}`;
+    const cached = this.placesCache.get(cacheKey);
+    if (cached) return of(cached);
+
+    if (!this.hasGeoapifyKey()) {
+      return this.searchOpenDataPlaces(destination, category, limit).pipe(
+        map(results => {
+          this.placesCache.set(cacheKey, results);
+          return results;
+        })
+      );
+    }
+
     return this.geocodeWithGeoapify(destination).pipe(
       switchMap(coords => {
         if (!coords) {
@@ -162,7 +209,12 @@ export class HotelService {
           );
         }
         const [lat, lon] = coords;
-        return this.fetchPlaces(lat, lon, category, limit);
+        return this.fetchPlaces(lat, lon, category, limit).pipe(
+          map(results => {
+            this.placesCache.set(cacheKey, results);
+            return results;
+          })
+        );
       }),
       catchError(error => {
         console.error('Nearby places search error:', error);
@@ -187,6 +239,218 @@ export class HotelService {
         return of([]);
       })
     );
+  }
+
+  private searchOpenDataPlaces(destination: string, category: string, limit: number): Observable<Hotel[]> {
+    const categoryKey = this.mapCategoryForOpenData(category);
+
+    // Fast path first: text search with Nominatim (usually much faster than Overpass).
+    return this.searchNominatimPlaces(destination, categoryKey, limit).pipe(
+      switchMap(quickResults => {
+        if (quickResults.length >= Math.min(8, limit)) {
+          return of(quickResults);
+        }
+
+        // Fallback path: geocode + Overpass for richer nearby results.
+        return this.geocodeWithNominatim(destination).pipe(
+          switchMap(coords => {
+            if (!coords) return of(quickResults);
+            const [lat, lon] = coords;
+            return this.fetchOverpassPlaces(lat, lon, categoryKey, limit).pipe(
+              map(overpassResults => {
+                const merged = [...quickResults, ...overpassResults];
+                const dedup = new Map<string, Hotel>();
+                for (const item of merged) {
+                  const key = `${item.name.toLowerCase()}_${item.lat.toFixed(4)}_${item.lon.toFixed(4)}`;
+                  if (!dedup.has(key)) dedup.set(key, item);
+                }
+                return [...dedup.values()].slice(0, limit);
+              })
+            );
+          })
+        );
+      }),
+      catchError(error => {
+        console.error('Open data places search error:', error);
+        return of([]);
+      })
+    );
+  }
+
+  private searchNominatimPlaces(destination: string, category: string, limit: number): Observable<Hotel[]> {
+    const queryByCategory: Record<string, string> = {
+      hotels: 'hotel guest house hostel',
+      restaurants: 'restaurant food',
+      cafes: 'cafe coffee',
+      attractions: 'tourist attraction museum sightseeing',
+      shopping: 'shopping mall market'
+    };
+    const q = `${queryByCategory[category] || queryByCategory['hotels']} in ${destination}`;
+
+    return this.http.get<any[]>('https://nominatim.openstreetmap.org/search', {
+      params: {
+        q,
+        format: 'json',
+        addressdetails: '1',
+        limit: String(limit),
+      }
+    }).pipe(
+      map(response => {
+        if (!Array.isArray(response)) return [];
+        return response
+          .map((item: any) => {
+            const lat = Number(item.lat);
+            const lon = Number(item.lon);
+            if (Number.isNaN(lat) || Number.isNaN(lon)) return null;
+
+            const displayName = String(item.display_name || '').trim();
+            const shortName = String(item.name || displayName.split(',')[0] || 'Place').trim();
+            return {
+              name: shortName,
+              address: displayName,
+              lat,
+              lon,
+              categories: [category],
+              stars: undefined,
+              rating: undefined,
+            } as Hotel;
+          })
+          .filter((h: Hotel | null): h is Hotel => !!h);
+      }),
+      catchError(() => of([]))
+    );
+  }
+
+  private mapCategoryForOpenData(category: string): string {
+    const value = (category || '').toLowerCase();
+    if (value.includes('restaurant')) return 'restaurants';
+    if (value.includes('cafe')) return 'cafes';
+    if (value.includes('attraction') || value.includes('sights')) return 'attractions';
+    if (value.includes('shopping') || value.includes('supermarket')) return 'shopping';
+    return 'hotels';
+  }
+
+  private geocodeWithNominatim(query: string): Observable<[number, number] | null> {
+    const cacheKey = `nom:${query.toLowerCase().trim()}`;
+    const cached = this.geocodeCache.get(cacheKey);
+    if (cached) return of(cached);
+
+    return this.http.get<any[]>('https://nominatim.openstreetmap.org/search', {
+      params: {
+        q: query,
+        format: 'json',
+        limit: '1'
+      }
+    }).pipe(
+      map(response => {
+        if (!Array.isArray(response) || response.length === 0) return null;
+        const item = response[0];
+        const lat = Number(item.lat);
+        const lon = Number(item.lon);
+        if (Number.isNaN(lat) || Number.isNaN(lon)) return null;
+        const coords = [lat, lon] as [number, number];
+        this.geocodeCache.set(cacheKey, coords);
+        return coords;
+      }),
+      catchError(() => of(null))
+    );
+  }
+
+  private fetchOverpassPlaces(lat: number, lon: number, category: string, limit: number): Observable<Hotel[]> {
+    const radius = 6000;
+    const queryByCategory: Record<string, string> = {
+      hotels: '["tourism"~"hotel|guest_house|hostel|motel|apartment"]',
+      restaurants: '["amenity"="restaurant"]',
+      cafes: '["amenity"="cafe"]',
+      attractions: '["tourism"~"attraction|museum|gallery|theme_park|viewpoint"]',
+      shopping: '["shop"]'
+    };
+
+    const selector = queryByCategory[category] || queryByCategory['hotels'];
+    const overpassQuery = `
+[out:json][timeout:12];
+(
+  node${selector}(around:${radius},${lat},${lon});
+  way${selector}(around:${radius},${lat},${lon});
+);
+out center ${Math.max(5, limit)};
+`;
+
+    return this.http.get<any>('https://overpass-api.de/api/interpreter', {
+      params: { data: overpassQuery }
+    }).pipe(
+      map(response => this.mapOverpassToHotels(response, lat, lon, category, limit)),
+      catchError(error => {
+        console.error('Overpass API error:', error);
+        return of([]);
+      })
+    );
+  }
+
+  private mapOverpassToHotels(response: any, originLat: number, originLon: number, category: string, limit: number): Hotel[] {
+    const elements = Array.isArray(response?.elements) ? response.elements : [];
+    const unique = new Set<string>();
+    const places: Hotel[] = [];
+
+    for (const el of elements) {
+      const tags = el.tags || {};
+      const name = (tags.name || '').trim();
+      const lat = Number(el.lat ?? el.center?.lat);
+      const lon = Number(el.lon ?? el.center?.lon);
+
+      if (!name || Number.isNaN(lat) || Number.isNaN(lon)) continue;
+
+      const key = `${name.toLowerCase()}_${lat.toFixed(4)}_${lon.toFixed(4)}`;
+      if (unique.has(key)) continue;
+      unique.add(key);
+
+      const stars = Number(tags.stars);
+      const address = [
+        tags['addr:housenumber'],
+        tags['addr:street'],
+        tags['addr:city'],
+        tags['addr:country']
+      ].filter(Boolean).join(', ');
+
+      const categories = this.deriveOpenDataCategories(tags, category);
+      places.push({
+        name,
+        address,
+        rating: undefined,
+        stars: Number.isNaN(stars) ? undefined : stars,
+        phone: tags.phone || tags['contact:phone'],
+        website: tags.website || tags['contact:website'],
+        lat,
+        lon,
+        categories,
+        distance: this.distanceInMeters(originLat, originLon, lat, lon),
+        image: undefined,
+        placeId: undefined,
+        wikipedia: tags.wikipedia,
+        imageUrl: undefined
+      });
+
+      if (places.length >= limit) break;
+    }
+
+    return places;
+  }
+
+  private deriveOpenDataCategories(tags: any, category: string): string[] {
+    const values = [tags.tourism, tags.amenity, tags.shop].filter(Boolean).map((v: any) => String(v).toLowerCase());
+    if (values.length > 0) return values;
+    return [category];
+  }
+
+  private distanceInMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const toRad = (deg: number) => (deg * Math.PI) / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return Math.round(6371000 * c);
   }
 
   private mapResponseToHotels(response: GeoapifyResponse): Hotel[] {
@@ -308,6 +572,8 @@ export class HotelService {
    * Updates the imageUrl property on each hotel in-place.
    */
   loadHotelPhotos(hotels: Hotel[]): void {
+    if (!this.hasGeoapifyKey()) return;
+
     hotels.forEach(hotel => {
       if (hotel.imageUrl) return; // already has image from API
 
@@ -367,6 +633,10 @@ export class HotelService {
    * Each hotel shows the actual building area from above. Different from the street map.
    */
   private getSatelliteMapUrl(lat: number, lon: number): string {
+    if (!this.hasGeoapifyKey()) {
+      // No-key fallback: OpenStreetMap static map snapshot for the location.
+      return `https://staticmap.openstreetmap.de/staticmap.php?center=${lat},${lon}&zoom=15&size=400x250&markers=${lat},${lon},red-pushpin`;
+    }
     return `https://maps.geoapify.com/v1/staticmap?style=klokantech-basic&width=400&height=250&center=lonlat:${lon},${lat}&zoom=17&marker=lonlat:${lon},${lat};color:%23ff0000;size:medium&apiKey=${this.apiKey}`;
   }
 

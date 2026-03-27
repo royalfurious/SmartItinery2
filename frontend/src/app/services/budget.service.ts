@@ -10,8 +10,8 @@ import {
  * local transport, accommodation and miscellaneous costs.
  *
  * Estimates are per-person per-day multiplied by trip length and
- * passenger count. The travel cost comes from the chosen
- * `TransportOption`.
+ * passenger count. Intercity travel is budgeted as round-trip
+ * from the chosen `TransportOption`.
  */
 @Injectable({ providedIn: 'root' })
 export class BudgetService {
@@ -32,12 +32,13 @@ export class BudgetService {
 
     // ── Per-person per-day estimates (INR) ──
     const foodPerDayPP       = +(800 * costMultiplier).toFixed(2);
-    const localTransportPP   = +(350  * costMultiplier).toFixed(2);
+    const localTransportPP   = +(450  * costMultiplier).toFixed(2);
     const accommodationPP    = +(2000 * costMultiplier).toFixed(2);
     const miscPP             = +(300  * costMultiplier).toFixed(2);
 
     // ── Totals ──
-    const travelCost         = transport.totalPrice;                              // already total
+    const oneWayTravelCost   = transport.totalPrice; // already total for current passengers
+    const travelCost         = +(oneWayTravelCost * 2).toFixed(2); // round-trip (to & fro)
     const foodCost           = +(foodPerDayPP * days * passengers).toFixed(2);
     const localTransportCost = +(localTransportPP * days * passengers).toFixed(2);
     const accommodationCost  = +(accommodationPP * days * passengers).toFixed(2);
@@ -46,9 +47,9 @@ export class BudgetService {
     const totalPerDay        = days > 0 ? +(totalTrip / days).toFixed(2) : totalTrip;
 
     const lineItems: BudgetLineItem[] = [
-      { category: 'Travel',          label: `${transport.mode} – ${transport.provider} (${passengers} pax)`, amount: travelCost },
+      { category: 'Travel',          label: `${transport.mode} – ${transport.provider} (${passengers} pax, round trip)`, amount: travelCost },
       { category: 'Food',            label: `₹${foodPerDayPP}/person/day × ${days} days × ${passengers} pax`, amount: +foodCost, perDay: true },
-      { category: 'Local Transport', label: `₹${localTransportPP}/person/day × ${days} days × ${passengers} pax`, amount: +localTransportCost, perDay: true },
+      { category: 'Local Transport', label: `₹${localTransportPP}/person/day × ${days} days × ${passengers} pax (within city + sightseeing rides)`, amount: +localTransportCost, perDay: true },
       { category: 'Accommodation',   label: `₹${accommodationPP}/person/day × ${days} days × ${passengers} pax`, amount: +accommodationCost, perDay: true },
       { category: 'Miscellaneous',   label: `₹${miscPP}/person/day × ${days} days × ${passengers} pax`, amount: +miscCost, perDay: true },
     ];

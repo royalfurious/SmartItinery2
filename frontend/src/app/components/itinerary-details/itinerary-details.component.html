@@ -432,6 +432,9 @@
                 <mat-icon>payments</mat-icon>
                 <span>{{ dayGroup.totalCost | currency : 'INR' : 'symbol' : '1.0-0' : 'en-IN' }}</span>
               </div>
+              <div class="day-cost-note">
+                Activities {{ dayGroup.activityCost | currency : 'INR' : 'symbol' : '1.0-0' : 'en-IN' }} + Daily essentials {{ dayGroup.essentialsCost | currency : 'INR' : 'symbol' : '1.0-0' : 'en-IN' }}
+              </div>
             </div>
 
             <!-- Activities -->
@@ -471,7 +474,7 @@
                         *ngIf="activity.estimatedCost"
                       >
                         <mat-icon>currency_rupee</mat-icon>
-                        {{ activity.estimatedCost | currency : 'INR' : 'symbol' : '1.0-0' : 'en-IN' }}
+                        Entry {{ activity.estimatedCost | currency : 'INR' : 'symbol' : '1.0-0' : 'en-IN' }}
                       </span>
                       <span
                         class="meta-tag free"
@@ -521,6 +524,7 @@
               <img
                 [src]="getMediaUrl(photo)"
                 [alt]="'Trip photo ' + (i + 1)"
+                title="Trip photo"
                 loading="lazy"
               />
               <div class="gallery-overlay">
@@ -555,6 +559,7 @@
         <img
           [src]="getMediaUrl(getMediaFiles()[lightboxIndex])"
           [alt]="'Trip photo'"
+          title="Trip photo"
           class="lightbox-image"
           (click)="$event.stopPropagation()"
         />
@@ -666,8 +671,10 @@
 
             <!-- Hotel Photo -->
             <div class="hotel-media" (click)="openInMaps(hotel.lat, hotel.lon, hotel.name)">
-              <img [src]="getHotelPhotoUrl(hotel)" 
+                <img *ngIf="!hasHotelImageError(hotel)"
+                  [src]="getHotelPhotoUrl(hotel)" 
                    [alt]="hotel.name"
+                      title="Place image"
                    loading="lazy"
                    class="hotel-photo"
                    (error)="onHotelImageError(hotel)">

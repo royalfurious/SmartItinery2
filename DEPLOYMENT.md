@@ -59,6 +59,11 @@ Set these in your hosting platform's dashboard:
 | `NODE_ENV` | `production` | Yes |
 | `CORS_ORIGIN` | Your Vercel frontend URL | Yes |
 
+Notes for `CORS_ORIGIN`:
+- Supports comma-separated values.
+- Supports `*.vercel.app` to allow Vercel preview URLs.
+- Example: `CORS_ORIGIN=https://your-app.vercel.app,https://yourdomain.com,*.vercel.app`
+
 ### Build & Start Commands
 ```bash
 npm install

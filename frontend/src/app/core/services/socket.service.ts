@@ -109,15 +109,20 @@ export class SocketService implements OnDestroy {
       return;
     }
 
-    // Resolve socket base URL at runtime using helper (avoids baking localhost into bundle)
+    // Resolve socket base URL at runtime.
+    // IMPORTANT: Must match the API host that issued the JWT, otherwise the server
+    // will reject it as an invalid token.
     let baseUrl = '';
     try {
-      baseUrl = getApiBase() || '';
-    } catch (e) {
+      baseUrl = (getApiBase() || '').trim();
+    } catch {
       baseUrl = '';
     }
-    if (!baseUrl || baseUrl.includes('localhost') || baseUrl === '/api') {
-      baseUrl = 'https://smartitinery2-1.onrender.com';
+
+    if (!baseUrl || baseUrl === '/api') {
+      baseUrl = environment.production
+        ? 'https://smartitinery2-1.onrender.com'
+        : 'http://localhost:3000';
     }
     
     this.socket = io(baseUrl, {

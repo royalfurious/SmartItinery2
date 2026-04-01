@@ -12,6 +12,7 @@ import collaboratorRoutes from './routes/collaborator.routes';
 import messageRoutes from './routes/message.routes';
 import chatRoutes from './routes/chat.routes';
 import transportRoutes from './routes/transport.routes';
+import budgetRoutes from './routes/budget.routes';
 import { errorHandler, notFoundHandler } from './middleware/error.middleware';
 import pool from './config/database';
 import { socketService } from './services/socket.service';
@@ -22,11 +23,72 @@ const app: Application = express();
 const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
+function buildCorsOriginChecker() {
+  const raw = (process.env.CORS_ORIGIN || '').trim();
+
+  const defaultOrigins = new Set(['http://localhost:4200', 'http://127.0.0.1:4200']);
+
+  if (!raw) {
+    return {
+      credentials: true,
+      isAllowed: (origin?: string) => {
+        if (!origin) return true;
+        return defaultOrigins.has(origin);
+      },
+    };
+  }
+
+  const parts = raw
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  const allowAll = parts.includes('*');
+  const exact = new Set<string>();
+  const suffixes: string[] = [];
+
+  for (const p of parts) {
+    if (p === '*') continue;
+    if (p.includes('*')) {
+      // Supports patterns like "*.vercel.app" or "https://*.vercel.app"
+      const suffix = p.replace(/^https?:\/\//, '').replace(/^\*\./, '.').replace('*', '');
+      if (suffix) suffixes.push(suffix.startsWith('.') ? suffix : `.${suffix}`);
+      continue;
+    }
+    exact.add(p);
+  }
+
+  return {
+    credentials: true,
+    isAllowed: (origin?: string) => {
+      if (!origin) return true;
+      if (allowAll) return true;
+      if (exact.has(origin)) return true;
+
+      try {
+        const hostname = new URL(origin).hostname;
+        return suffixes.some((s) => hostname.endsWith(s));
+      } catch {
+        return false;
+      }
+    },
+  };
+}
+
+const corsCheck = buildCorsOriginChecker();
+
 // Initialize Socket.io
 socketService.initialize(server);
 
 // Middleware
-app.use(cors());
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      callback(null, corsCheck.isAllowed(origin || undefined));
+    },
+    credentials: corsCheck.credentials,
+  })
+);
 // Tolerant body parser: try to coerce simple malformed JSON-like payloads
 // (e.g. {name:Aditya,email:...}) into valid JSON to avoid 400 parse errors
 import getRawBody from 'raw-body';
@@ -96,6 +158,7 @@ app.use('/api/collaborators', collaboratorRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/transport', transportRoutes);
+app.use('/api/budget', budgetRoutes);
 
 // Error handling
 app.use(notFoundHandler);

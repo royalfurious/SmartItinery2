@@ -39,12 +39,65 @@ class SocketService {
   private editingUsers: Map<string, Map<string, EditingUser>> = new Map(); // roomId -> oduserId -> user
   private userSockets: Map<number, Set<string>> = new Map(); // userId -> Set of socket IDs
 
+  private buildCorsOriginChecker() {
+    const raw = (process.env.CORS_ORIGIN || '').trim();
+    const defaultOrigins = new Set(['http://localhost:4200', 'http://127.0.0.1:4200']);
+
+    if (!raw) {
+      return {
+        credentials: true,
+        isAllowed: (origin?: string) => {
+          if (!origin) return true;
+          return defaultOrigins.has(origin);
+        },
+      };
+    }
+
+    const parts = raw
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    const allowAll = parts.includes('*');
+    const exact = new Set<string>();
+    const suffixes: string[] = [];
+
+    for (const p of parts) {
+      if (p === '*') continue;
+      if (p.includes('*')) {
+        const suffix = p.replace(/^https?:\/\//, '').replace(/^\*\./, '.').replace('*', '');
+        if (suffix) suffixes.push(suffix.startsWith('.') ? suffix : `.${suffix}`);
+        continue;
+      }
+      exact.add(p);
+    }
+
+    return {
+      credentials: true,
+      isAllowed: (origin?: string) => {
+        if (!origin) return true;
+        if (allowAll) return true;
+        if (exact.has(origin)) return true;
+
+        try {
+          const hostname = new URL(origin).hostname;
+          return suffixes.some((s) => hostname.endsWith(s));
+        } catch {
+          return false;
+        }
+      },
+    };
+  }
+
   initialize(server: HTTPServer): void {
+    const corsCheck = this.buildCorsOriginChecker();
     this.io = new SocketIOServer(server, {
       cors: {
-        origin: ['http://localhost:4200', 'http://127.0.0.1:4200'],
+        origin: (origin, callback) => {
+          callback(null, corsCheck.isAllowed(origin || undefined));
+        },
         methods: ['GET', 'POST'],
-        credentials: true
+        credentials: corsCheck.credentials
       }
     });
 

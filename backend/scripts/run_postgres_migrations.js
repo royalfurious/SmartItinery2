@@ -29,6 +29,10 @@ const statements = [
     created_at TIMESTAMP DEFAULT NOW()
   );`,
 
+  // Ensure existing databases created with older schema get upgraded.
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_picture TEXT;`,
+  `ALTER TABLE users ALTER COLUMN profile_picture TYPE TEXT;`,
+
   `CREATE TABLE IF NOT EXISTS itineraries (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

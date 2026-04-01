@@ -23,6 +23,9 @@ build/
 # Uploads (profile pics now stored as base64 in DB)
 uploads/
 
+# Local DB backup/restore inputs
+backend/backup_restore_input/
+
 # Logs
 npm-debug.log*
 yarn-debug.log*
